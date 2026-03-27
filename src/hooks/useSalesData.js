@@ -3,8 +3,11 @@ import { salesData as fallbackData } from '../data/salesData';
 import { SHEETS_CSV_URL } from '../config';
 
 // Colunas do CSV (mesma ordem do Sheets)
-// A=0  B=1            C=2                 D=3             E=4                   F=5        G=6         H=7
-// Dia  Gasto Total    Fat. Total          Gasto Período   Fat. Período          ROI Total  ROI Período Qtd Envios
+// A=0  B=1          C=2           D=3            E=4               F=5        G=6         H=7
+// Dia  Gasto Total  Fat. Total    Gasto Período  Fat. Período      ROI Total  ROI Período Qtd Envios Período
+//
+// I=8               J=9                K=10              L=11              M=12
+// Qtd Envios Total  Qtd Vendas Período Conversão Período  Qtd Vendas Total  Conversão Total
 
 const AUTO_REFRESH_MS = 60 * 1000; // 1 minuto
 
@@ -18,14 +21,19 @@ function parseCSV(text) {
     if (!dia) return null;
 
     return {
-      dia:                 dia,
-      gastoTotal:          parseVal(cols[1]),
-      faturamentoTotal:    parseVal(cols[2]),
-      gastoperiodo:        parseVal(cols[3]),
-      faturamentoPeriodo:  parseVal(cols[4]),
-      roiTotal:            parseVal(cols[5]),
-      roiPeriodo:          parseVal(cols[6]),
-      quantEnvios:         parseIntVal(cols[7]),
+      dia:                  dia,
+      gastoTotal:           parseVal(cols[1]),
+      faturamentoTotal:     parseVal(cols[2]),
+      gastoperiodo:         parseVal(cols[3]),
+      faturamentoPeriodo:   parseVal(cols[4]),
+      roiTotal:             parseVal(cols[5]),
+      roiPeriodo:           parseVal(cols[6]),
+      quantEnvios:          parseIntVal(cols[7]),
+      quantEnviosTotal:     parseIntVal(cols[8]),
+      quantVendasPeriodo:   parseIntVal(cols[9]),
+      conversaoPeriodo:     parseVal(cols[10]),
+      quantVendasTotal:     parseIntVal(cols[11]),
+      conversaoTotal:       parseVal(cols[12]),
     };
   }).filter(Boolean);
 }

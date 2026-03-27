@@ -222,6 +222,17 @@
   }
 }
 
+/* KPI SECTION LABEL */
+.kpi-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
 /* KPI CARDS */
 .kpi-grid {
   display: grid;

@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, DollarSign, Send, BarChart2, Activity,
-  Calendar, RefreshCw, AlertCircle, Database, ChevronDown,
+  Calendar, RefreshCw, AlertCircle, Database, ShoppingCart, Percent,
 } from 'lucide-react';
 
 // ─── FORMATTERS ──────────────────────────────────────────────────────────────
@@ -18,6 +18,9 @@ const fmt = (v) =>
 
 const fmtROI = (v) =>
   v == null || isNaN(v) || !isFinite(v) ? '—' : v.toFixed(1) + 'x';
+
+const fmtPct = (v) =>
+  v == null || isNaN(v) ? '—' : v.toFixed(2) + '%';
 
 const formatTick = (v) => {
   if (v == null) return '';
@@ -75,7 +78,10 @@ const CustomTooltip = ({ active, payload, label }) => {
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color, marginBottom: 2 }}>
           {p.name}: <strong>
-            {p.name.includes('ROI') ? fmtROI(p.value) : p.name === 'Envios' ? p.value : fmt(p.value)}
+            {p.name.includes('ROI') ? fmtROI(p.value)
+              : p.name.includes('%') ? fmtPct(p.value)
+              : (p.name === 'Envios' || p.name === 'Vendas') ? p.value
+              : fmt(p.value)}
           </strong>
         </p>
       ))}
@@ -158,6 +164,7 @@ function App() {
   const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
   const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
   const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
+  const totalVendasPeriodo = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
 
   const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
 
@@ -256,48 +263,85 @@ function App() {
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* KPI CARDS — PERÍODO */}
+      <div className="kpi-section-label">Período filtrado</div>
       <div className="kpi-grid">
         <div className="kpi-card highlight">
           <div className="kpi-icon"><TrendingUp size={16} /></div>
           <div className="kpi-label">ROI do Período</div>
           <div className="kpi-value red">{fmtROI(roiCalculado)}</div>
-          <div className="kpi-sub">Fat. ÷ Gasto no filtro</div>
+          <div className="kpi-sub">Fat. ÷ Gasto</div>
         </div>
-
         <div className="kpi-card">
           <div className="kpi-icon"><DollarSign size={16} /></div>
           <div className="kpi-label">Faturamento Período</div>
           <div className="kpi-value">{fmt(fatPeriodoSum)}</div>
           <div className="kpi-sub">Receita no período</div>
         </div>
-
         <div className="kpi-card">
           <div className="kpi-icon"><BarChart2 size={16} /></div>
           <div className="kpi-label">Gasto Período</div>
           <div className="kpi-value">{fmt(gastoPeriodoSum)}</div>
-          <div className="kpi-sub">Investimento no período</div>
+          <div className="kpi-sub">Investimento</div>
         </div>
-
         <div className="kpi-card">
           <div className="kpi-icon"><Send size={16} /></div>
-          <div className="kpi-label">Total de Envios</div>
+          <div className="kpi-label">Envios Período</div>
           <div className="kpi-value">{totalEnvios.toLocaleString('pt-BR')}</div>
           <div className="kpi-sub">Mensagens disparadas</div>
         </div>
-
         <div className="kpi-card">
-          <div className="kpi-icon"><Activity size={16} /></div>
-          <div className="kpi-label">Dias c/ Conversão</div>
-          <div className="kpi-value">{diasComFaturamento}</div>
-          <div className="kpi-sub">de {salesData.length} dias</div>
+          <div className="kpi-icon"><ShoppingCart size={16} /></div>
+          <div className="kpi-label">Vendas Período</div>
+          <div className="kpi-value">{totalVendasPeriodo.toLocaleString('pt-BR')}</div>
+          <div className="kpi-sub">Conversões no período</div>
         </div>
-
         <div className="kpi-card">
-          <div className="kpi-icon"><Calendar size={16} /></div>
-          <div className="kpi-label">ROI Total Acumulado</div>
-          <div className="kpi-value" style={{ fontSize: 22 }}>{fmtROI(last.roiTotal)}</div>
-          <div className="kpi-sub">{last.dia}</div>
+          <div className="kpi-icon"><Percent size={16} /></div>
+          <div className="kpi-label">Conversão Período</div>
+          <div className="kpi-value">{fmtPct(last.conversaoPeriodo)}</div>
+          <div className="kpi-sub">Taxa de conversão</div>
+        </div>
+      </div>
+
+      {/* KPI CARDS — ACUMULADO */}
+      <div className="kpi-section-label">Acumulado total</div>
+      <div className="kpi-grid">
+        <div className="kpi-card highlight">
+          <div className="kpi-icon"><TrendingUp size={16} /></div>
+          <div className="kpi-label">ROI Total</div>
+          <div className="kpi-value red">{fmtROI(last.roiTotal)}</div>
+          <div className="kpi-sub">Retorno acumulado</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon"><DollarSign size={16} /></div>
+          <div className="kpi-label">Faturamento Total</div>
+          <div className="kpi-value">{fmt(last.faturamentoTotal)}</div>
+          <div className="kpi-sub">Receita acumulada</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon"><BarChart2 size={16} /></div>
+          <div className="kpi-label">Gasto Total</div>
+          <div className="kpi-value">{fmt(last.gastoTotal)}</div>
+          <div className="kpi-sub">Investimento acumulado</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon"><Send size={16} /></div>
+          <div className="kpi-label">Envios Total</div>
+          <div className="kpi-value">{(last.quantEnviosTotal || 0).toLocaleString('pt-BR')}</div>
+          <div className="kpi-sub">Total de mensagens</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon"><ShoppingCart size={16} /></div>
+          <div className="kpi-label">Vendas Total</div>
+          <div className="kpi-value">{(last.quantVendasTotal || 0).toLocaleString('pt-BR')}</div>
+          <div className="kpi-sub">Conversões acumuladas</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-icon"><Percent size={16} /></div>
+          <div className="kpi-label">Conversão Total</div>
+          <div className="kpi-value">{fmtPct(last.conversaoTotal)}</div>
+          <div className="kpi-sub">Taxa acumulada</div>
         </div>
       </div>
 
@@ -357,6 +401,33 @@ function App() {
           </ResponsiveContainer>
         </div>
 
+        <div className="chart-card">
+          <div className="chart-title"><span className="chart-title-dot" />Vendas por Dia</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="quantVendasPeriodo" name="Vendas" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card full">
+          <div className="chart-title"><span className="chart-title-dot" />Conversão do Período (%)</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v + '%'} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="conversaoPeriodo" name="Conversão Período %" stroke="#cc0000" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="conversaoTotal" name="Conversão Total %" stroke="#444" strokeWidth={2} dot={false} strokeDasharray="4 2" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
         <div className="chart-card full">
           <div className="chart-title"><span className="chart-title-dot" />Faturamento do Período vs Gasto do Período</div>
           <div className="chart-legend">
@@ -390,12 +461,17 @@ function App() {
               <tr>
                 <th>Dia</th>
                 <th>Gasto Total</th>
-                <th>Faturamento Total</th>
+                <th>Fat. Total</th>
                 <th>ROI Total</th>
-                <th>Gasto Período</th>
-                <th>Faturamento Período</th>
-                <th>ROI Período</th>
-                <th>Qtd. Envios</th>
+                <th>Gasto Per.</th>
+                <th>Fat. Período</th>
+                <th>ROI Per.</th>
+                <th>Envios Per.</th>
+                <th>Envios Total</th>
+                <th>Vendas Per.</th>
+                <th>Conv. Per.</th>
+                <th>Vendas Total</th>
+                <th>Conv. Total</th>
               </tr>
             </thead>
             <tbody>
@@ -411,6 +487,13 @@ function App() {
                   <td className={row.quantEnvios >= 100 ? 'envios-alto' : ''}>
                     {row.quantEnvios === 0 ? <span className="badge-zero">0</span> : row.quantEnvios}
                   </td>
+                  <td>{row.quantEnviosTotal || <span className="badge-zero">0</span>}</td>
+                  <td className={row.quantVendasPeriodo > 0 ? 'valor-positivo' : 'badge-zero'}>
+                    {row.quantVendasPeriodo || 0}
+                  </td>
+                  <td>{fmtPct(row.conversaoPeriodo)}</td>
+                  <td>{row.quantVendasTotal || <span className="badge-zero">0</span>}</td>
+                  <td>{fmtPct(row.conversaoTotal)}</td>
                 </tr>
               ))}
             </tbody>
