@@ -106,16 +106,17 @@ function App() {
 
   function applyPreset(preset) {
     setActivePreset(preset.label);
-    if (!preset.days || !allData.length) {
+    if (!preset.days) {
       setStartDate('');
       setEndDate('');
       return;
     }
-    const last  = parseDate(allData[allData.length - 1].dia);
-    const from  = new Date(last);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const from = new Date(today);
     from.setDate(from.getDate() - preset.days + 1);
     setStartDate(toInputVal(from));
-    setEndDate(toInputVal(last));
+    setEndDate(toInputVal(today));
   }
 
   function handleDateChange(type, val) {
