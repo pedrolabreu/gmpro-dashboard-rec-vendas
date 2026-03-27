@@ -1,10 +1,10 @@
 import './App.css';
-import { salesData } from './data/salesData';
+import { useSalesData } from './hooks/useSalesData';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, DollarSign, Send, BarChart2, Activity, Calendar } from 'lucide-react';
+import { TrendingUp, DollarSign, Send, BarChart2, Activity, Calendar, RefreshCw, AlertCircle, Database } from 'lucide-react';
 
 const fmt = (v) =>
   v == null || isNaN(v) ? '—' :
@@ -47,6 +47,27 @@ const roiClass = (roi) => {
 };
 
 function App() {
+  const { data: salesData, loading, error, updatedAt, source } = useSalesData();
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <RefreshCw size={28} color="#cc0000" style={{ animation: 'spin 1s linear infinite' }} />
+        <p style={{ color: '#555', fontSize: 14 }}>Carregando dados do Google Sheets...</p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (!salesData.length) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+        <AlertCircle size={28} color="#cc0000" />
+        <p style={{ color: '#555', fontSize: 14 }}>Nenhum dado encontrado.</p>
+      </div>
+    );
+  }
+
   const last = salesData[salesData.length - 1];
   const totalEnvios = salesData.reduce((s, d) => s + d.quantEnvios, 0);
   const diasComFaturamento = salesData.filter(d => d.faturamentoPeriodo > 0).length;
@@ -67,8 +88,21 @@ function App() {
             <div className="header-subtitle">Acompanhamento diário de performance</div>
           </div>
         </div>
-        <div className="header-badge">
-          Período: <span>02/03 – 27/03/2026</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <div className="header-badge">
+            Período: <span>
+              {salesData.length > 0
+                ? `${salesData[0].dia.slice(0, 5)} – ${last.dia}`
+                : '—'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#444' }}>
+            <Database size={11} color={source === 'sheets' ? '#4ade80' : '#555'} />
+            {source === 'sheets'
+              ? <>Google Sheets · atualizado {updatedAt ? new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</>
+              : 'Dados locais (configure a URL do Apps Script)'}
+            {error && <span style={{ color: '#cc0000', marginLeft: 4 }}>· {error}</span>}
+          </div>
         </div>
       </div>
 
