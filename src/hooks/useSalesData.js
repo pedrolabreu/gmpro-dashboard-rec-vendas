@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { salesData as fallbackData } from '../data/salesData';
 import { SHEETS_CSV_URL } from '../config';
 
@@ -6,14 +6,14 @@ import { SHEETS_CSV_URL } from '../config';
 // A=0  B=1            C=2                 D=3             E=4                   F=5        G=6         H=7
 // Dia  Gasto Total    Fat. Total          Gasto Período   Fat. Período          ROI Total  ROI Período Qtd Envios
 
+const AUTO_REFRESH_MS = 60 * 1000; // 1 minuto
+
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
 
-  // Ignora linha de cabeçalho (linha 0)
   return lines.slice(1).map(line => {
     const cols = splitCSVLine(line);
-
     const dia = cols[0]?.trim() ?? '';
     if (!dia) return null;
 
@@ -30,7 +30,6 @@ function parseCSV(text) {
   }).filter(Boolean);
 }
 
-// Divide uma linha CSV respeitando campos entre aspas
 function splitCSVLine(line) {
   const result = [];
   let current = '';
@@ -53,7 +52,6 @@ function splitCSVLine(line) {
 
 function parseVal(v) {
   if (!v || v.trim() === '' || v.startsWith('#')) return 0;
-  // Remove R$, espaços, pontos de milhar e troca vírgula decimal por ponto
   const str = v.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
   const n = parseFloat(str);
   return isNaN(n) ? 0 : n;
@@ -68,11 +66,13 @@ function parseIntVal(v) {
 export function useSalesData() {
   const [data, setData]           = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError]         = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [source, setSource]       = useState('local');
+  const intervalRef               = useRef(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(async (isManual = false) => {
     if (!SHEETS_CSV_URL) {
       setData(fallbackData);
       setSource('local');
@@ -80,44 +80,48 @@ export function useSalesData() {
       return;
     }
 
-    const controller = new AbortController();
+    // Primeira carga usa loading, refreshes manuais/auto usam refreshing
+    if (isManual) setRefreshing(true);
+    else setLoading(true);
 
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
+    setError(null);
 
-        const res = await fetch(SHEETS_CSV_URL, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
+    try {
+      // Cache-bust para garantir dados frescos do Google (ignora cache do browser)
+      const url = `${SHEETS_CSV_URL}&t=${Date.now()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
 
-        const text = await res.text();
-        const parsed = parseCSV(text);
+      const text = await res.text();
+      const parsed = parseCSV(text);
 
-        if (!parsed.length) throw new Error('Nenhum dado encontrado na planilha.');
+      if (!parsed.length) throw new Error('Nenhum dado encontrado na planilha.');
 
-        setData(parsed);
-        setUpdatedAt(new Date().toISOString());
-        setSource('sheets');
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        setError(err.message);
+      setData(parsed);
+      setUpdatedAt(new Date().toISOString());
+      setSource('sheets');
+    } catch (err) {
+      setError(err.message);
+      if (!data.length) {
         setData(fallbackData);
         setSource('local');
-      } finally {
-        setLoading(false);
       }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    fetchData();
+  // Carga inicial + auto-refresh a cada 1 minuto
+  useEffect(() => {
+    fetchData(false);
 
-    // Atualiza automaticamente a cada 5 minutos
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    intervalRef.current = setInterval(() => fetchData(false), AUTO_REFRESH_MS);
 
-    return () => {
-      controller.abort();
-      clearInterval(interval);
-    };
-  }, []);
+    return () => clearInterval(intervalRef.current);
+  }, [fetchData]);
 
-  return { data, loading, error, updatedAt, source };
+  const refetch = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, refreshing, error, updatedAt, source, refetch };
 }

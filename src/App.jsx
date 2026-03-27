@@ -86,7 +86,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ─── APP ─────────────────────────────────────────────────────────────────────
 
 function App() {
-  const { data: allData, loading, error, updatedAt, source } = useSalesData();
+  const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
 
   const [activePreset, setActivePreset] = useState('Tudo');
   const [startDate, setStartDate]       = useState('');
@@ -177,7 +177,8 @@ function App() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#444' }}>
             <Database size={11} color={source === 'sheets' ? '#4ade80' : '#555'} />
             {source === 'sheets'
@@ -185,6 +186,20 @@ function App() {
               : 'Dados locais'}
             {error && <span style={{ color: '#cc0000', marginLeft: 4 }}>· {error}</span>}
           </div>
+
+          {/* Botão de refresh */}
+          <button
+            onClick={refetch}
+            disabled={refreshing}
+            className="refresh-btn"
+            title="Atualizar dados"
+          >
+            <RefreshCw
+              size={14}
+              style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}
+            />
+            {refreshing ? 'Atualizando...' : 'Atualizar'}
+          </button>
         </div>
       </div>
 
