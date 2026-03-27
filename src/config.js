@@ -11,4 +11,4 @@
  * Se precisar trocar a aba, adicione &gid=NUMERO_DA_ABA na URL.
  */
 export const SHEETS_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCJAscipMljTmKeJvDfOL5PctBDSXJVB1I3Boq0A5eYaCLOQl72gpYH3GANrJo6MhY7uEmsDeYAfC0/pub?output=csv';
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCJAscipMljTmKeJvDfOL5PctBDSXJVB1I3Boq0A5eYaCLOQl72gpYH3GANrJo6MhY7uEmsDeYAfC0/pub?gid=0&single=true&output=csv';
