@@ -42,9 +42,13 @@ const parseDate = (str) => {
 };
 
 // Date → "yyyy-MM-dd" (valor do input[type=date])
+// Usa componentes locais para evitar bug de fuso horário com toISOString()
 const toInputVal = (date) => {
   if (!date) return '';
-  return date.toISOString().slice(0, 10);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
 // "yyyy-MM-dd" → Date
@@ -213,8 +217,7 @@ function App() {
                 type="date"
                 className="date-input"
                 value={startDate}
-                min={allData.length ? toInputVal(parseDate(allData[0].dia)) : ''}
-                max={endDate || (allData.length ? toInputVal(parseDate(allData[allData.length - 1].dia)) : '')}
+                max={endDate || toInputVal(new Date())}
                 onChange={e => handleDateChange('start', e.target.value)}
               />
             </div>
@@ -224,8 +227,7 @@ function App() {
                 type="date"
                 className="date-input"
                 value={endDate}
-                min={startDate || (allData.length ? toInputVal(parseDate(allData[0].dia)) : '')}
-                max={allData.length ? toInputVal(parseDate(allData[allData.length - 1].dia)) : ''}
+                min={startDate || ''}
                 onChange={e => handleDateChange('end', e.target.value)}
               />
             </div>
