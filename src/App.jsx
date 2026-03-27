@@ -298,7 +298,7 @@ function App() {
         <div className="kpi-card">
           <div className="kpi-icon"><Percent size={16} /></div>
           <div className="kpi-label">Conversão Período</div>
-          <div className="kpi-value">{fmtPct(last.conversaoPeriodo)}</div>
+          <div className="kpi-value">{fmtPct(last.conversaoTotal)}</div>
           <div className="kpi-sub">Taxa de conversão</div>
         </div>
       </div>
