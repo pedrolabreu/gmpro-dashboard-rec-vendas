@@ -263,8 +263,7 @@ function App() {
         </div>
       </div>
 
-      {/* KPI CARDS — PERÍODO */}
-      <div className="kpi-section-label">Período filtrado</div>
+      {/* KPI CARDS */}
       <div className="kpi-grid">
         <div className="kpi-card highlight">
           <div className="kpi-icon"><TrendingUp size={16} /></div>
@@ -304,46 +303,6 @@ function App() {
         </div>
       </div>
 
-      {/* KPI CARDS — ACUMULADO */}
-      <div className="kpi-section-label">Acumulado total</div>
-      <div className="kpi-grid">
-        <div className="kpi-card highlight">
-          <div className="kpi-icon"><TrendingUp size={16} /></div>
-          <div className="kpi-label">ROI Total</div>
-          <div className="kpi-value red">{fmtROI(last.roiTotal)}</div>
-          <div className="kpi-sub">Retorno acumulado</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon"><DollarSign size={16} /></div>
-          <div className="kpi-label">Faturamento Total</div>
-          <div className="kpi-value">{fmt(last.faturamentoTotal)}</div>
-          <div className="kpi-sub">Receita acumulada</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon"><BarChart2 size={16} /></div>
-          <div className="kpi-label">Gasto Total</div>
-          <div className="kpi-value">{fmt(last.gastoTotal)}</div>
-          <div className="kpi-sub">Investimento acumulado</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon"><Send size={16} /></div>
-          <div className="kpi-label">Envios Total</div>
-          <div className="kpi-value">{(last.quantEnviosTotal || 0).toLocaleString('pt-BR')}</div>
-          <div className="kpi-sub">Total de mensagens</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon"><ShoppingCart size={16} /></div>
-          <div className="kpi-label">Vendas Total</div>
-          <div className="kpi-value">{(last.quantVendasTotal || 0).toLocaleString('pt-BR')}</div>
-          <div className="kpi-sub">Conversões acumuladas</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-icon"><Percent size={16} /></div>
-          <div className="kpi-label">Conversão Total</div>
-          <div className="kpi-value">{fmtPct(last.conversaoTotal)}</div>
-          <div className="kpi-sub">Taxa acumulada</div>
-        </div>
-      </div>
 
       {/* CHARTS */}
       <div className="charts-grid">
