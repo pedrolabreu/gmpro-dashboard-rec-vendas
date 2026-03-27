@@ -1,37 +1,23 @@
+import { useState, useMemo } from 'react';
 import './App.css';
 import { useSalesData } from './hooks/useSalesData';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, DollarSign, Send, BarChart2, Activity, Calendar, RefreshCw, AlertCircle, Database } from 'lucide-react';
+import {
+  TrendingUp, DollarSign, Send, BarChart2, Activity,
+  Calendar, RefreshCw, AlertCircle, Database, ChevronDown,
+} from 'lucide-react';
+
+// ─── FORMATTERS ──────────────────────────────────────────────────────────────
 
 const fmt = (v) =>
   v == null || isNaN(v) ? '—' :
   'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const fmtROI = (v) =>
-  v == null || isNaN(v) ? '—' : v.toFixed(1) + 'x';
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{
-      background: '#111',
-      border: '1px solid #222',
-      borderRadius: 8,
-      padding: '10px 14px',
-      fontSize: 12,
-    }}>
-      <p style={{ color: '#666', marginBottom: 6, fontSize: 11 }}>{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, marginBottom: 2 }}>
-          {p.name}: <strong>{p.name.includes('ROI') ? fmtROI(p.value) : p.name === 'Envios' ? p.value : fmt(p.value)}</strong>
-        </p>
-      ))}
-    </div>
-  );
-};
+  v == null || isNaN(v) || !isFinite(v) ? '—' : v.toFixed(1) + 'x';
 
 const formatTick = (v) => {
   if (v == null) return '';
@@ -46,20 +32,111 @@ const roiClass = (roi) => {
   return 'roi-baixo';
 };
 
+// ─── DATE UTILS ──────────────────────────────────────────────────────────────
+
+// "dd/MM/yyyy" → Date
+const parseDate = (str) => {
+  if (!str) return null;
+  const [d, m, y] = str.split('/');
+  return new Date(+y, +m - 1, +d);
+};
+
+// Date → "yyyy-MM-dd" (valor do input[type=date])
+const toInputVal = (date) => {
+  if (!date) return '';
+  return date.toISOString().slice(0, 10);
+};
+
+// "yyyy-MM-dd" → Date
+const fromInputVal = (str) => {
+  if (!str) return null;
+  const [y, m, d] = str.split('-');
+  return new Date(+y, +m - 1, +d);
+};
+
+const PRESETS = [
+  { label: '7d',   days: 7 },
+  { label: '14d',  days: 14 },
+  { label: '30d',  days: 30 },
+  { label: 'Tudo', days: null },
+];
+
+// ─── TOOLTIP ─────────────────────────────────────────────────────────────────
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: '#111', border: '1px solid #222', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+      <p style={{ color: '#666', marginBottom: 6, fontSize: 11 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.color, marginBottom: 2 }}>
+          {p.name}: <strong>
+            {p.name.includes('ROI') ? fmtROI(p.value) : p.name === 'Envios' ? p.value : fmt(p.value)}
+          </strong>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+
 function App() {
-  const { data: salesData, loading, error, updatedAt, source } = useSalesData();
+  const { data: allData, loading, error, updatedAt, source } = useSalesData();
+
+  const [activePreset, setActivePreset] = useState('Tudo');
+  const [startDate, setStartDate]       = useState('');
+  const [endDate, setEndDate]           = useState('');
+
+  // Aplica filtro de datas
+  const salesData = useMemo(() => {
+    if (!allData.length) return [];
+
+    let from = startDate ? fromInputVal(startDate) : null;
+    let to   = endDate   ? fromInputVal(endDate)   : null;
+
+    return allData.filter(row => {
+      const d = parseDate(row.dia);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    });
+  }, [allData, startDate, endDate]);
+
+  function applyPreset(preset) {
+    setActivePreset(preset.label);
+    if (!preset.days || !allData.length) {
+      setStartDate('');
+      setEndDate('');
+      return;
+    }
+    const last  = parseDate(allData[allData.length - 1].dia);
+    const from  = new Date(last);
+    from.setDate(from.getDate() - preset.days + 1);
+    setStartDate(toInputVal(from));
+    setEndDate(toInputVal(last));
+  }
+
+  function handleDateChange(type, val) {
+    setActivePreset('');
+    if (type === 'start') setStartDate(val);
+    else setEndDate(val);
+  }
+
+  // ── Loading / empty states ──────────────────────────────────────────────────
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
         <RefreshCw size={28} color="#cc0000" style={{ animation: 'spin 1s linear infinite' }} />
         <p style={{ color: '#555', fontSize: 14 }}>Carregando dados do Google Sheets...</p>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
       </div>
     );
   }
 
-  if (!salesData.length) {
+  if (!allData.length) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
         <AlertCircle size={28} color="#cc0000" />
@@ -68,14 +145,20 @@ function App() {
     );
   }
 
-  const last = salesData[salesData.length - 1];
-  const totalEnvios = salesData.reduce((s, d) => s + d.quantEnvios, 0);
-  const diasComFaturamento = salesData.filter(d => d.faturamentoPeriodo > 0).length;
+  // ── KPIs baseados no período filtrado ──────────────────────────────────────
 
-  const chartData = salesData.map(d => ({
-    ...d,
-    label: d.dia.slice(0, 5),
-  }));
+  const last               = salesData.length ? salesData[salesData.length - 1] : allData[allData.length - 1];
+  const totalEnvios        = salesData.reduce((s, d) => s + d.quantEnvios, 0);
+  const diasComFaturamento = salesData.filter(d => d.faturamentoPeriodo > 0).length;
+  const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
+  const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
+  const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
+
+  const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
+
+  const periodoLabel = salesData.length
+    ? `${salesData[0].dia.slice(0, 5)} – ${last.dia}`
+    : '—';
 
   return (
     <div className="dashboard">
@@ -88,21 +171,70 @@ function App() {
             <div className="header-subtitle">Acompanhamento diário de performance</div>
           </div>
         </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-          <div className="header-badge">
-            Período: <span>
-              {salesData.length > 0
-                ? `${salesData[0].dia.slice(0, 5)} – ${last.dia}`
-                : '—'}
-            </span>
-          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#444' }}>
             <Database size={11} color={source === 'sheets' ? '#4ade80' : '#555'} />
             {source === 'sheets'
-              ? <>Google Sheets · atualizado {updatedAt ? new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</>
-              : 'Dados locais (configure a URL do Apps Script)'}
+              ? <>Google Sheets · {updatedAt ? new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</>
+              : 'Dados locais'}
             {error && <span style={{ color: '#cc0000', marginLeft: 4 }}>· {error}</span>}
           </div>
+        </div>
+      </div>
+
+      {/* DATE FILTER */}
+      <div className="date-filter">
+        <div className="date-filter-left">
+          <Calendar size={14} color="#cc0000" />
+          <span className="date-filter-label">Período:</span>
+          <span className="date-filter-period">{periodoLabel}</span>
+        </div>
+
+        <div className="date-filter-right">
+          {/* Presets */}
+          <div className="preset-group">
+            {PRESETS.map(p => (
+              <button
+                key={p.label}
+                className={`preset-btn ${activePreset === p.label ? 'active' : ''}`}
+                onClick={() => applyPreset(p)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Date inputs */}
+          <div className="date-inputs">
+            <div className="date-input-wrap">
+              <input
+                type="date"
+                className="date-input"
+                value={startDate}
+                min={allData.length ? toInputVal(parseDate(allData[0].dia)) : ''}
+                max={endDate || (allData.length ? toInputVal(parseDate(allData[allData.length - 1].dia)) : '')}
+                onChange={e => handleDateChange('start', e.target.value)}
+              />
+            </div>
+            <span style={{ color: '#333', fontSize: 12 }}>→</span>
+            <div className="date-input-wrap">
+              <input
+                type="date"
+                className="date-input"
+                value={endDate}
+                min={startDate || (allData.length ? toInputVal(parseDate(allData[0].dia)) : '')}
+                max={allData.length ? toInputVal(parseDate(allData[allData.length - 1].dia)) : ''}
+                onChange={e => handleDateChange('end', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {(startDate || endDate) && (
+            <button className="clear-btn" onClick={() => applyPreset({ label: 'Tudo', days: null })}>
+              Limpar
+            </button>
+          )}
         </div>
       </div>
 
@@ -110,23 +242,23 @@ function App() {
       <div className="kpi-grid">
         <div className="kpi-card highlight">
           <div className="kpi-icon"><TrendingUp size={16} /></div>
-          <div className="kpi-label">ROI Total Atual</div>
-          <div className="kpi-value red">{fmtROI(last.roiTotal)}</div>
-          <div className="kpi-sub">Retorno acumulado</div>
+          <div className="kpi-label">ROI do Período</div>
+          <div className="kpi-value red">{fmtROI(roiCalculado)}</div>
+          <div className="kpi-sub">Fat. ÷ Gasto no filtro</div>
         </div>
 
         <div className="kpi-card">
           <div className="kpi-icon"><DollarSign size={16} /></div>
-          <div className="kpi-label">Faturamento Total</div>
-          <div className="kpi-value">{fmt(last.faturamentoTotal)}</div>
-          <div className="kpi-sub">Receita acumulada</div>
+          <div className="kpi-label">Faturamento Período</div>
+          <div className="kpi-value">{fmt(fatPeriodoSum)}</div>
+          <div className="kpi-sub">Receita no período</div>
         </div>
 
         <div className="kpi-card">
           <div className="kpi-icon"><BarChart2 size={16} /></div>
-          <div className="kpi-label">Gasto Total</div>
-          <div className="kpi-value">{fmt(last.gastoTotal)}</div>
-          <div className="kpi-sub">Investimento acumulado</div>
+          <div className="kpi-label">Gasto Período</div>
+          <div className="kpi-value">{fmt(gastoPeriodoSum)}</div>
+          <div className="kpi-sub">Investimento no período</div>
         </div>
 
         <div className="kpi-card">
@@ -145,44 +277,34 @@ function App() {
 
         <div className="kpi-card">
           <div className="kpi-icon"><Calendar size={16} /></div>
-          <div className="kpi-label">Último Faturamento</div>
-          <div className="kpi-value" style={{ fontSize: 18 }}>{fmt(last.faturamentoPeriodo)}</div>
+          <div className="kpi-label">ROI Total Acumulado</div>
+          <div className="kpi-value" style={{ fontSize: 22 }}>{fmtROI(last.roiTotal)}</div>
           <div className="kpi-sub">{last.dia}</div>
         </div>
       </div>
 
       {/* CHARTS */}
       <div className="charts-grid">
-        {/* Faturamento vs Gasto Acumulado */}
         <div className="chart-card full">
-          <div className="chart-title">
-            <span className="chart-title-dot" />
-            Faturamento vs Gasto — Acumulado
-          </div>
+          <div className="chart-title"><span className="chart-title-dot" />Faturamento vs Gasto — Acumulado</div>
           <div className="chart-legend">
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#cc0000' }} />
-              Faturamento Total
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#444' }} />
-              Gasto Total
-            </div>
+            <div className="legend-item"><div className="legend-dot" style={{ background: '#cc0000' }} />Faturamento Total</div>
+            <div className="legend-item"><div className="legend-dot" style={{ background: '#444' }} />Gasto Total</div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#cc0000" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#cc0000" stopOpacity={0.0} />
+                  <stop offset="95%" stopColor="#cc0000" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gastoGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#444" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#444" stopOpacity={0.0} />
+                  <stop offset="95%" stopColor="#444" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={3} />
+              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tickFormatter={formatTick} tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="faturamentoTotal" name="Faturamento Total" stroke="#cc0000" fill="url(#fatGrad)" strokeWidth={2} dot={false} />
@@ -191,16 +313,12 @@ function App() {
           </ResponsiveContainer>
         </div>
 
-        {/* ROI Total por dia */}
         <div className="chart-card">
-          <div className="chart-title">
-            <span className="chart-title-dot" />
-            ROI Total por Dia
-          </div>
+          <div className="chart-title"><span className="chart-title-dot" />ROI Total por Dia</div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={4} />
+              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="roiTotal" name="ROI Total" stroke="#cc0000" strokeWidth={2} dot={false} />
@@ -208,16 +326,12 @@ function App() {
           </ResponsiveContainer>
         </div>
 
-        {/* Envios por dia */}
         <div className="chart-card">
-          <div className="chart-title">
-            <span className="chart-title-dot" />
-            Envios por Dia
-          </div>
+          <div className="chart-title"><span className="chart-title-dot" />Envios por Dia</div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={4} />
+              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="quantEnvios" name="Envios" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
@@ -225,26 +339,16 @@ function App() {
           </ResponsiveContainer>
         </div>
 
-        {/* Faturamento vs Gasto do período */}
         <div className="chart-card full">
-          <div className="chart-title">
-            <span className="chart-title-dot" />
-            Faturamento do Período vs Gasto do Período
-          </div>
+          <div className="chart-title"><span className="chart-title-dot" />Faturamento do Período vs Gasto do Período</div>
           <div className="chart-legend">
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#cc0000' }} />
-              Faturamento Período
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#333' }} />
-              Gasto Período
-            </div>
+            <div className="legend-item"><div className="legend-dot" style={{ background: '#cc0000' }} />Faturamento Período</div>
+            <div className="legend-item"><div className="legend-dot" style={{ background: '#333' }} />Gasto Período</div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval={3} />
+              <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tickFormatter={formatTick} tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="faturamentoPeriodo" name="Faturamento Período" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
@@ -257,11 +361,10 @@ function App() {
       {/* TABELA */}
       <div className="table-card">
         <div className="table-header">
-          <div className="table-title">
-            <span className="chart-title-dot" />
-            Histórico Detalhado
+          <div className="table-title"><span className="chart-title-dot" />Histórico Detalhado</div>
+          <div className="table-count">
+            {salesData.length} {salesData.length !== allData.length ? `de ${allData.length} registros` : 'registros'}
           </div>
-          <div className="table-count">{salesData.length} registros</div>
         </div>
         <div className="table-wrapper">
           <table>
@@ -282,14 +385,10 @@ function App() {
                 <tr key={i}>
                   <td className="dia">{row.dia}</td>
                   <td>{fmt(row.gastoTotal)}</td>
-                  <td className={row.faturamentoTotal > 0 ? 'valor-positivo' : 'badge-zero'}>
-                    {fmt(row.faturamentoTotal)}
-                  </td>
+                  <td className={row.faturamentoTotal > 0 ? 'valor-positivo' : 'badge-zero'}>{fmt(row.faturamentoTotal)}</td>
                   <td className={roiClass(row.roiTotal)}>{fmtROI(row.roiTotal)}</td>
                   <td>{fmt(row.gastoperiodo)}</td>
-                  <td className={row.faturamentoPeriodo > 0 ? 'valor-positivo' : 'badge-zero'}>
-                    {fmt(row.faturamentoPeriodo)}
-                  </td>
+                  <td className={row.faturamentoPeriodo > 0 ? 'valor-positivo' : 'badge-zero'}>{fmt(row.faturamentoPeriodo)}</td>
                   <td className={roiClass(row.roiPeriodo)}>{fmtROI(row.roiPeriodo)}</td>
                   <td className={row.quantEnvios >= 100 ? 'envios-alto' : ''}>
                     {row.quantEnvios === 0 ? <span className="badge-zero">0</span> : row.quantEnvios}

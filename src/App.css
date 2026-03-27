@@ -62,6 +62,139 @@
   font-weight: 600;
 }
 
+/* DATE FILTER */
+.date-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111;
+  border: 1px solid #1e1e1e;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.date-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.date-filter-label {
+  font-size: 12px;
+  color: #555;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.date-filter-period {
+  font-size: 13px;
+  color: #cc0000;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.date-filter-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.preset-group {
+  display: flex;
+  gap: 4px;
+  background: #0d0d0d;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.preset-btn {
+  background: transparent;
+  border: none;
+  color: #555;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+}
+
+.preset-btn:hover {
+  color: #fff;
+  background: #1a1a1a;
+}
+
+.preset-btn.active {
+  background: #cc0000;
+  color: #fff;
+}
+
+.date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-input-wrap {
+  position: relative;
+}
+
+.date-input {
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+
+.date-input:hover {
+  border-color: #333;
+}
+
+.date-input:focus {
+  border-color: #cc0000;
+}
+
+.clear-btn {
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #555;
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clear-btn:hover {
+  border-color: #cc0000;
+  color: #cc0000;
+}
+
+@media (max-width: 768px) {
+  .date-filter {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .date-filter-right {
+    width: 100%;
+  }
+}
+
 /* KPI CARDS */
 .kpi-grid {
   display: grid;
