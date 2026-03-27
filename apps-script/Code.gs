@@ -13,91 +13,107 @@
  * 6. Copie a URL gerada e cole no dashboard (src/config.js)
  */
 
-// Configuração: nome da aba com os dados
-var SHEET_NAME = 'Dashboard'; // Altere se sua aba tiver outro nome
+// ─── CONFIGURAÇÃO ────────────────────────────────────────────────────────────
+
+var SHEET_NAME = 'Dashboard'; // Nome da aba com os dados
+var HEADER_ROWS = 1;          // Quantidade de linhas de cabeçalho a ignorar
+
+// Mapeamento de colunas (0 = coluna A, 1 = coluna B, ...)
+var COL = {
+  DIA:                  0, // A - Dia
+  GASTO_TOTAL:          1, // B - Gasto Total
+  FATURAMENTO_TOTAL:    2, // C - Faturamento Total
+  GASTO_PERIODO:        3, // D - Gasto do Período
+  FATURAMENTO_PERIODO:  4, // E - Faturamento do Período
+  ROI_TOTAL:            5, // F - ROI Total
+  ROI_PERIODO:          6, // G - ROI do Período
+  QUANT_ENVIOS:         7, // H - Quantidade de Envios
+};
+
+// ─── API ─────────────────────────────────────────────────────────────────────
 
 function doGet(e) {
   try {
-    var data = getDashboardData();
-    var output = ContentService
-      .createTextOutput(JSON.stringify(data))
+    var result = getDashboardData();
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
-    return addCorsHeaders(output);
   } catch (err) {
-    var error = ContentService
+    return ContentService
       .createTextOutput(JSON.stringify({ error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
-    return addCorsHeaders(error);
   }
 }
 
-function addCorsHeaders(output) {
-  // Permite que o dashboard acesse a API de qualquer origem
-  return output;
-}
+// ─── LEITURA DOS DADOS ───────────────────────────────────────────────────────
 
 function getDashboardData() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAME);
-
-  if (!sheet) {
-    throw new Error('Aba "' + SHEET_NAME + '" não encontrada. Verifique o nome da aba no script.');
-  }
-
+  var sheet = getSheet();
   var lastRow = sheet.getLastRow();
 
-  // Ignora linha 1 (cabeçalho), lê a partir da linha 2
-  if (lastRow < 2) {
-    return { data: [], updatedAt: new Date().toISOString() };
+  if (lastRow <= HEADER_ROWS) {
+    return { data: [], updatedAt: new Date().toISOString(), totalRows: 0 };
   }
 
-  // Lê todas as colunas de uma vez (A até H)
-  var range = sheet.getRange(2, 1, lastRow - 1, 8);
-  var values = range.getValues();
+  var startRow = HEADER_ROWS + 1;
+  var numRows  = lastRow - HEADER_ROWS;
+  var numCols  = Object.keys(COL).length; // lê exatamente as colunas mapeadas
 
-  var data = [];
+  var values = sheet.getRange(startRow, 1, numRows, numCols).getValues();
+  var data   = [];
 
   for (var i = 0; i < values.length; i++) {
     var row = values[i];
 
-    // Ignora linhas vazias (sem data)
-    if (!row[0] || row[0] === '') continue;
+    // Ignora linhas sem data
+    if (!row[COL.DIA] || row[COL.DIA] === '') continue;
 
-    // Formata a data
-    var dia = '';
-    if (row[0] instanceof Date) {
-      dia = Utilities.formatDate(row[0], Session.getScriptTimeZone(), 'dd/MM/yyyy');
-    } else {
-      dia = String(row[0]);
-    }
-
-    // Converte valores, tratando células vazias e erros (#DIV/0!, etc.)
-    var entry = {
-      dia:                  dia,
-      gastoTotal:           parseVal(row[1]),
-      faturamentoTotal:     parseVal(row[2]),
-      gastoperiodo:         parseVal(row[3]),
-      faturamentoPeriodo:   parseVal(row[4]),
-      roiTotal:             parseVal(row[5]),
-      roiPeriodo:           parseVal(row[6]),
-      quantEnvios:          parseIntVal(row[7]),
-    };
-
-    data.push(entry);
+    data.push({
+      dia:                 formatDate(row[COL.DIA]),
+      gastoTotal:          parseVal(row[COL.GASTO_TOTAL]),
+      faturamentoTotal:    parseVal(row[COL.FATURAMENTO_TOTAL]),
+      gastoperiodo:        parseVal(row[COL.GASTO_PERIODO]),
+      faturamentoPeriodo:  parseVal(row[COL.FATURAMENTO_PERIODO]),
+      roiTotal:            parseVal(row[COL.ROI_TOTAL]),
+      roiPeriodo:          parseVal(row[COL.ROI_PERIODO]),
+      quantEnvios:         parseIntVal(row[COL.QUANT_ENVIOS]),
+    });
   }
 
   return {
-    data: data,
+    data:      data,
     updatedAt: new Date().toISOString(),
     totalRows: data.length,
   };
 }
 
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function getSheet() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    throw new Error(
+      'Aba "' + SHEET_NAME + '" não encontrada. ' +
+      'Verifique o valor de SHEET_NAME no topo do script.'
+    );
+  }
+  return sheet;
+}
+
+function formatDate(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+  }
+  return String(v).trim();
+}
+
 function parseVal(v) {
   if (v === '' || v === null || v === undefined) return 0;
   if (typeof v === 'number') return v;
-  // Remove R$, espaços e troca vírgula por ponto
-  var str = String(v).replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
+  // Trata erros de fórmula como #DIV/0!, #VALOR!, etc.
+  if (typeof v === 'string' && v.startsWith('#')) return null;
+  var str    = String(v).replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
   var parsed = parseFloat(str);
   return isNaN(parsed) ? 0 : parsed;
 }
@@ -105,14 +121,18 @@ function parseVal(v) {
 function parseIntVal(v) {
   if (v === '' || v === null || v === undefined) return 0;
   if (typeof v === 'number') return Math.round(v);
+  if (typeof v === 'string' && v.startsWith('#')) return 0;
   var parsed = parseInt(String(v).trim(), 10);
   return isNaN(parsed) ? 0 : parsed;
 }
 
-// Função auxiliar para testar no editor do Apps Script
+// ─── TESTE ────────────────────────────────────────────────────────────────────
+
+// Execute esta função no editor do Apps Script para validar antes de implantar
 function testar() {
   var resultado = getDashboardData();
-  Logger.log('Total de linhas: ' + resultado.totalRows);
-  Logger.log('Primeiro registro: ' + JSON.stringify(resultado.data[0]));
-  Logger.log('Último registro: ' + JSON.stringify(resultado.data[resultado.data.length - 1]));
+  Logger.log('✅ Total de linhas lidas: ' + resultado.totalRows);
+  Logger.log('📅 Primeiro registro: ' + JSON.stringify(resultado.data[0]));
+  Logger.log('📅 Último registro:   ' + JSON.stringify(resultado.data[resultado.data.length - 1]));
+  Logger.log('🕒 Atualizado em:     ' + resultado.updatedAt);
 }
