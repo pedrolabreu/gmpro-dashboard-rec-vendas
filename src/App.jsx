@@ -164,7 +164,8 @@ function App() {
   const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
   const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
   const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
-  const totalVendasPeriodo = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
+  const totalVendasPeriodo  = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
+  const conversaoPeriodo    = totalEnvios > 0 ? (totalVendasPeriodo / totalEnvios) * 100 : 0;
 
   const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
 
@@ -298,7 +299,7 @@ function App() {
         <div className="kpi-card">
           <div className="kpi-icon"><Percent size={16} /></div>
           <div className="kpi-label">Conversão Período</div>
-          <div className="kpi-value">{fmtPct(last.conversaoTotal)}</div>
+          <div className="kpi-value">{fmtPct(conversaoPeriodo)}</div>
           <div className="kpi-sub">Taxa de conversão</div>
         </div>
       </div>
