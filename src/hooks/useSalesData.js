@@ -97,7 +97,7 @@ export function useSalesData() {
     try {
       // Cache-bust para garantir dados frescos do Google (ignora cache do browser)
       const url = `${SHEETS_CSV_URL}&t=${Date.now()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
 
       const text = await res.text();

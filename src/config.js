@@ -1,14 +1,11 @@
 /**
- * URL pública do Google Sheets publicado como CSV.
+ * URL de export direto do Google Sheets — sem cache, sempre atualizado.
  *
- * Como obter:
- * 1. No Sheets: Arquivo > Compartilhar > Publicar na web
- * 2. Selecione a aba com os dados
- * 3. Formato: "Valores separados por vírgula (.csv)"
- * 4. Clique em Publicar e cole a URL abaixo
+ * Requer que a planilha esteja compartilhada com "Qualquer pessoa com o link".
+ * Não precisa de "Publicar na web" — usa o export nativo do Sheets.
  *
- * O ID da planilha já foi detectado automaticamente.
- * Se precisar trocar a aba, adicione &gid=NUMERO_DA_ABA na URL.
+ * Formato: /export?format=csv&gid=GID_DA_ABA
+ * GID 0 = primeira aba (ajuste se necessário)
  */
 export const SHEETS_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCJAscipMljTmKeJvDfOL5PctBDSXJVB1I3Boq0A5eYaCLOQl72gpYH3GANrJo6MhY7uEmsDeYAfC0/pub?gid=0&single=true&output=csv';
+  'https://docs.google.com/spreadsheets/d/1vI66AYn6y_hdd2XFsYeUm2vrAMSdHaE6eOu5C9B0zyc/export?format=csv&gid=0';
