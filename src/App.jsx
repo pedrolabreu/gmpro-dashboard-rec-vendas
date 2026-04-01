@@ -316,14 +316,6 @@ function App() {
           </div>
           <div className="kpi-sub">Lucro líquido no filtro</div>
         </div>
-        <div className={`kpi-card ${last.lucroTotal >= 0 ? '' : 'kpi-negativo'}`}>
-          <div className="kpi-icon"><TrendingUp size={16} /></div>
-          <div className="kpi-label">Lucro Total</div>
-          <div className={`kpi-value ${last.lucroTotal >= 0 ? 'positivo' : 'negativo'}`}>
-            {fmt(last.lucroTotal)}
-          </div>
-          <div className="kpi-sub">Lucro líquido acumulado</div>
-        </div>
       </div>
 
 
