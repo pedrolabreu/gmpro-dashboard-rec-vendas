@@ -6,8 +6,8 @@ import { SHEETS_CSV_URL } from '../config';
 // A=0  B=1          C=2           D=3            E=4               F=5        G=6         H=7
 // Dia  Gasto Total  Fat. Total    Gasto Período  Fat. Período      ROI Total  ROI Período Qtd Envios Período
 //
-// I=8               J=9                K=10              L=11              M=12
-// Qtd Envios Total  Qtd Vendas Período Conversão Período  Qtd Vendas Total  Conversão Total
+// I=8               J=9                K=10              L=11              M=12            N=13
+// Qtd Envios Total  Qtd Vendas Período Conversão Período  Qtd Vendas Total  Conversão Total Qtd Reembolsos
 
 const AUTO_REFRESH_MS = 60 * 1000; // 1 minuto
 
@@ -34,6 +34,7 @@ function parseCSV(text) {
       conversaoPeriodo:     parseVal(cols[10]),
       quantVendasTotal:     parseIntVal(cols[11]),
       conversaoTotal:       parseVal(cols[12]),
+      quantReembolsos:      parseIntVal(cols[13]),
     };
   }).filter(Boolean);
 }

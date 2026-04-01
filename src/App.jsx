@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, DollarSign, Send, BarChart2, Activity,
-  Calendar, RefreshCw, AlertCircle, Database, ShoppingCart, Percent,
+  Calendar, RefreshCw, AlertCircle, Database, ShoppingCart, Percent, RotateCcw,
 } from 'lucide-react';
 
 // ─── FORMATTERS ──────────────────────────────────────────────────────────────
@@ -302,6 +302,12 @@ function App() {
           <div className="kpi-value">{fmtPct(conversaoPeriodo)}</div>
           <div className="kpi-sub">Taxa de conversão</div>
         </div>
+        <div className="kpi-card">
+          <div className="kpi-icon"><RotateCcw size={16} /></div>
+          <div className="kpi-label">Reembolsos</div>
+          <div className="kpi-value">{salesData.reduce((s, d) => s + (d.quantReembolsos || 0), 0).toLocaleString('pt-BR')}</div>
+          <div className="kpi-sub">No período filtrado</div>
+        </div>
       </div>
 
 
@@ -432,6 +438,7 @@ function App() {
                 <th>Conv. Per.</th>
                 <th>Vendas Total</th>
                 <th>Conv. Total</th>
+                <th>Reembolsos</th>
               </tr>
             </thead>
             <tbody>
@@ -454,6 +461,9 @@ function App() {
                   <td>{fmtPct(row.conversaoPeriodo)}</td>
                   <td>{row.quantVendasTotal || <span className="badge-zero">0</span>}</td>
                   <td>{fmtPct(row.conversaoTotal)}</td>
+                  <td className={row.quantReembolsos > 0 ? 'roi-alto' : 'badge-zero'}>
+                    {row.quantReembolsos || 0}
+                  </td>
                 </tr>
               ))}
             </tbody>
