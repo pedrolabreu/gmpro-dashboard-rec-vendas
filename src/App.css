@@ -308,6 +308,19 @@
   color: #cc0000;
 }
 
+.kpi-value.positivo {
+  color: #4ade80;
+}
+
+.kpi-value.negativo {
+  color: #cc0000;
+}
+
+.kpi-card.kpi-negativo {
+  border-color: #2a0000;
+  background: linear-gradient(135deg, #111 60%, #150000);
+}
+
 .kpi-sub {
   font-size: 11px;
   color: #444;

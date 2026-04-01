@@ -308,6 +308,22 @@ function App() {
           <div className="kpi-value">{salesData.reduce((s, d) => s + (d.quantReembolsos || 0), 0).toLocaleString('pt-BR')}</div>
           <div className="kpi-sub">No período filtrado</div>
         </div>
+        <div className={`kpi-card ${salesData.reduce((s, d) => s + (d.lucroPeriodo || 0), 0) >= 0 ? '' : 'kpi-negativo'}`}>
+          <div className="kpi-icon"><DollarSign size={16} /></div>
+          <div className="kpi-label">Lucro do Período</div>
+          <div className={`kpi-value ${salesData.reduce((s, d) => s + (d.lucroPeriodo || 0), 0) >= 0 ? 'positivo' : 'negativo'}`}>
+            {fmt(salesData.reduce((s, d) => s + (d.lucroPeriodo || 0), 0))}
+          </div>
+          <div className="kpi-sub">Lucro líquido no filtro</div>
+        </div>
+        <div className={`kpi-card ${last.lucroTotal >= 0 ? '' : 'kpi-negativo'}`}>
+          <div className="kpi-icon"><TrendingUp size={16} /></div>
+          <div className="kpi-label">Lucro Total</div>
+          <div className={`kpi-value ${last.lucroTotal >= 0 ? 'positivo' : 'negativo'}`}>
+            {fmt(last.lucroTotal)}
+          </div>
+          <div className="kpi-sub">Lucro líquido acumulado</div>
+        </div>
       </div>
 
 
@@ -439,6 +455,8 @@ function App() {
                 <th>Vendas Total</th>
                 <th>Conv. Total</th>
                 <th>Reembolsos</th>
+                <th>Lucro Per.</th>
+                <th>Lucro Total</th>
               </tr>
             </thead>
             <tbody>
@@ -463,6 +481,12 @@ function App() {
                   <td>{fmtPct(row.conversaoTotal)}</td>
                   <td className={row.quantReembolsos > 0 ? 'roi-alto' : 'badge-zero'}>
                     {row.quantReembolsos || 0}
+                  </td>
+                  <td className={row.lucroPeriodo > 0 ? 'valor-positivo' : row.lucroPeriodo < 0 ? 'roi-alto' : 'badge-zero'}>
+                    {fmt(row.lucroPeriodo || 0)}
+                  </td>
+                  <td className={row.lucroTotal > 0 ? 'valor-positivo' : row.lucroTotal < 0 ? 'roi-alto' : 'badge-zero'}>
+                    {fmt(row.lucroTotal || 0)}
                   </td>
                 </tr>
               ))}

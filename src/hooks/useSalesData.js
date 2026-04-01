@@ -6,8 +6,8 @@ import { SHEETS_CSV_URL } from '../config';
 // A=0  B=1          C=2           D=3            E=4               F=5        G=6         H=7
 // Dia  Gasto Total  Fat. Total    Gasto Período  Fat. Período      ROI Total  ROI Período Qtd Envios Período
 //
-// I=8               J=9                K=10              L=11              M=12            N=13
-// Qtd Envios Total  Qtd Vendas Período Conversão Período  Qtd Vendas Total  Conversão Total Qtd Reembolsos
+// I=8               J=9                K=10              L=11              M=12            N=13           O=14           P=15
+// Qtd Envios Total  Qtd Vendas Período Conversão Período  Qtd Vendas Total  Conversão Total Qtd Reembolsos Lucro Período  Lucro Total
 
 const AUTO_REFRESH_MS = 60 * 1000; // 1 minuto
 
@@ -35,6 +35,8 @@ function parseCSV(text) {
       quantVendasTotal:     parseIntVal(cols[11]),
       conversaoTotal:       parseVal(cols[12]),
       quantReembolsos:      parseIntVal(cols[13]),
+      lucroPeriodo:         parseValSigned(cols[14]),
+      lucroTotal:           parseValSigned(cols[15]),
     };
   }).filter(Boolean);
 }
@@ -64,6 +66,16 @@ function parseVal(v) {
   const str = v.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
   const n = parseFloat(str);
   return isNaN(n) ? 0 : n;
+}
+
+// Igual a parseVal mas preserva valores negativos (ex: -R$ 6,23)
+function parseValSigned(v) {
+  if (!v || v.trim() === '' || v.startsWith('#')) return 0;
+  const negative = v.trim().startsWith('-');
+  const str = v.replace(/-/g, '').replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
+  const n = parseFloat(str);
+  if (isNaN(n)) return 0;
+  return negative ? -n : n;
 }
 
 function parseIntVal(v) {
