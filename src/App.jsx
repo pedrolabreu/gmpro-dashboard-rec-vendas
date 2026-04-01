@@ -330,10 +330,11 @@ function App() {
       {/* CHARTS */}
       <div className="charts-grid">
         <div className="chart-card full">
-          <div className="chart-title"><span className="chart-title-dot" />Faturamento vs Gasto — Acumulado</div>
+          <div className="chart-title"><span className="chart-title-dot" />Faturamento vs Gasto vs Lucro — Acumulado</div>
           <div className="chart-legend">
             <div className="legend-item"><div className="legend-dot" style={{ background: '#cc0000' }} />Faturamento Total</div>
-            <div className="legend-item"><div className="legend-dot" style={{ background: '#444' }} />Gasto Total</div>
+            <div className="legend-item"><div className="legend-dot" style={{ background: '#555' }} />Gasto Total</div>
+            <div className="legend-item"><div className="legend-dot" style={{ background: '#4ade80' }} />Lucro Total</div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
@@ -343,8 +344,12 @@ function App() {
                   <stop offset="95%" stopColor="#cc0000" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gastoGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#444" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#444" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#555" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#555" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="lucroGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#4ade80" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
@@ -352,7 +357,8 @@ function App() {
               <YAxis tickFormatter={formatTick} tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="faturamentoTotal" name="Faturamento Total" stroke="#cc0000" fill="url(#fatGrad)" strokeWidth={2} dot={false} />
-              <Area type="monotone" dataKey="gastoTotal" name="Gasto Total" stroke="#444" fill="url(#gastoGrad)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="gastoTotal" name="Gasto Total" stroke="#555" fill="url(#gastoGrad)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="lucroTotal" name="Lucro Total" stroke="#4ade80" fill="url(#lucroGrad)" strokeWidth={2} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
