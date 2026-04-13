@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import './App.css';
 import { useSalesData } from './hooks/useSalesData';
+import UtmDashboard from './components/UtmDashboard';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -94,6 +95,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
 
+  const [activeTab, setActiveTab]       = useState('principal');
   const [activePreset, setActivePreset] = useState('Tudo');
   const [startDate, setStartDate]       = useState('');
   const [endDate, setEndDate]           = useState('');
@@ -210,6 +212,20 @@ function App() {
           </button>
         </div>
       </div>
+
+      {/* TABS */}
+      <div className="tab-bar">
+        <button className={`tab-btn ${activeTab === 'principal' ? 'active' : ''}`} onClick={() => setActiveTab('principal')}>
+          Dashboard Principal
+        </button>
+        <button className={`tab-btn ${activeTab === 'utm' ? 'active' : ''}`} onClick={() => setActiveTab('utm')}>
+          Vendas por UTM
+        </button>
+      </div>
+
+      {activeTab === 'utm' && <UtmDashboard />}
+
+      {activeTab === 'principal' && <>
 
       {/* DATE FILTER */}
       <div className="date-filter">
@@ -496,6 +512,7 @@ function App() {
       <div className="footer">
         GM Pro · Dashboard Recuperação de Vendas · {new Date().toLocaleDateString('pt-BR')}
       </div>
+      </>}
     </div>
   );
 }
