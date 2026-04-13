@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useUtmData } from '../hooks/useUtmData';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from 'recharts';
-import { RefreshCw, AlertCircle, DollarSign, ShoppingCart, Tag, Wifi } from 'lucide-react';
+import { RefreshCw, AlertCircle, DollarSign, ShoppingCart, Tag, Wifi, Calendar } from 'lucide-react';
 
 const fmt = (v) =>
   v == null || isNaN(v) ? '—' :
@@ -18,6 +18,34 @@ const formatTick = (v) => {
 
 const maskEmail = (email) =>
   email.replace(/(.{2})(.*)(@.*)/, (_, a, b, c) => a + '***' + c);
+
+// "dd/MM/yyyy" → Date
+const parseDate = (str) => {
+  if (!str) return null;
+  const [d, m, y] = str.split('/');
+  return new Date(+y, +m - 1, +d);
+};
+
+const toInputVal = (date) => {
+  if (!date) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const fromInputVal = (str) => {
+  if (!str) return null;
+  const [y, m, d] = str.split('-');
+  return new Date(+y, +m - 1, +d);
+};
+
+const PRESETS = [
+  { label: '7d',   days: 7 },
+  { label: '14d',  days: 14 },
+  { label: '30d',  days: 30 },
+  { label: 'Tudo', days: null },
+];
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -47,7 +75,42 @@ function aggregate(data, key) {
 const COLORS = ['#cc0000', '#ff3333', '#ff6666', '#ff9999', '#ffcccc'];
 
 export default function UtmDashboard() {
-  const { data, loading, refreshing, error, updatedAt, refetch } = useUtmData();
+  const { data: allData, loading, refreshing, error, updatedAt, refetch } = useUtmData();
+
+  const [activePreset, setActivePreset] = useState('Tudo');
+  const [startDate, setStartDate]       = useState('');
+  const [endDate, setEndDate]           = useState('');
+
+  // Filtered data
+  const data = useMemo(() => {
+    if (!allData.length) return [];
+    const from = startDate ? fromInputVal(startDate) : null;
+    const to   = endDate   ? fromInputVal(endDate)   : null;
+    return allData.filter(row => {
+      const d = parseDate(row.data);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    });
+  }, [allData, startDate, endDate]);
+
+  const applyPreset = useCallback((preset) => {
+    setActivePreset(preset.label);
+    if (!preset.days) { setStartDate(''); setEndDate(''); return; }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const from = new Date(today);
+    from.setDate(from.getDate() - preset.days + 1);
+    setStartDate(toInputVal(from));
+    setEndDate(toInputVal(today));
+  }, []);
+
+  function handleDateChange(type, val) {
+    setActivePreset('');
+    if (type === 'start') setStartDate(val);
+    else setEndDate(val);
+  }
 
   const byTerm   = useMemo(() => aggregate(data, 'utmTerm'),   [data]);
   const byMedium = useMemo(() => aggregate(data, 'utmMedium'), [data]);
@@ -63,6 +126,13 @@ export default function UtmDashboard() {
       return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
     }), [data]);
 
+  const periodoLabel = data.length
+    ? (() => {
+        const dates = [...data].sort((a, b) => parseDate(a.data) - parseDate(b.data));
+        return `${dates[0].data.slice(0, 5)} – ${dates[dates.length - 1].data}`;
+      })()
+    : '—';
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 80 }}>
@@ -72,7 +142,7 @@ export default function UtmDashboard() {
     );
   }
 
-  if (error && !data.length) {
+  if (error && !allData.length) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, padding: 80 }}>
         <AlertCircle size={28} color="#cc0000" />
@@ -84,15 +154,63 @@ export default function UtmDashboard() {
   return (
     <div>
       {/* Sub-header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: '#444' }}>
-          {data.length} vendas · {updatedAt ? `atualizado ${new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+          {data.length} de {allData.length} vendas · {updatedAt ? `atualizado ${new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
           {error && <span style={{ color: '#cc0000', marginLeft: 8 }}>{error}</span>}
         </div>
         <button onClick={refetch} disabled={refreshing} className="refresh-btn">
           <RefreshCw size={14} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
           {refreshing ? 'Atualizando...' : 'Atualizar'}
         </button>
+      </div>
+
+      {/* DATE FILTER */}
+      <div className="date-filter">
+        <div className="date-filter-left">
+          <Calendar size={14} color="#cc0000" />
+          <span className="date-filter-label">Período:</span>
+          <span className="date-filter-period">{periodoLabel}</span>
+        </div>
+        <div className="date-filter-right">
+          <div className="preset-group">
+            {PRESETS.map(p => (
+              <button
+                key={p.label}
+                className={`preset-btn ${activePreset === p.label ? 'active' : ''}`}
+                onClick={() => applyPreset(p)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="date-inputs">
+            <div className="date-input-wrap">
+              <input
+                type="date"
+                className="date-input"
+                value={startDate}
+                max={endDate || toInputVal(new Date())}
+                onChange={e => handleDateChange('start', e.target.value)}
+              />
+            </div>
+            <span style={{ color: '#333', fontSize: 12 }}>→</span>
+            <div className="date-input-wrap">
+              <input
+                type="date"
+                className="date-input"
+                value={endDate}
+                min={startDate || ''}
+                onChange={e => handleDateChange('end', e.target.value)}
+              />
+            </div>
+          </div>
+          {(startDate || endDate) && (
+            <button className="clear-btn" onClick={() => applyPreset({ label: 'Tudo', days: null })}>
+              Limpar
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI CARDS */}
@@ -179,7 +297,9 @@ export default function UtmDashboard() {
       <div className="table-card">
         <div className="table-header">
           <div className="table-title"><span className="chart-title-dot" />Todas as Vendas</div>
-          <div className="table-count">{data.length} registros</div>
+          <div className="table-count">
+            {data.length} {data.length !== allData.length ? `de ${allData.length} registros` : 'registros'}
+          </div>
         </div>
         <div className="table-wrapper">
           <table>
