@@ -3,4 +3,4 @@ export const SHEETS_CSV_URL =
 
 // Aba "Vendas - Recuperação" — substitua o gid abaixo pelo número correto
 export const UTM_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/1vI66AYn6y_hdd2XFsYeUm2vrAMSdHaE6eOu5C9B0zyc/export?format=csv&gid=GID_AQUI';
+  'https://docs.google.com/spreadsheets/d/1vI66AYn6y_hdd2XFsYeUm2vrAMSdHaE6eOu5C9B0zyc/export?format=csv&gid=1951142666';
