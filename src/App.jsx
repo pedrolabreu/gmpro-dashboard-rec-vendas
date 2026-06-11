@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import './App.css';
 import { useSalesData } from './hooks/useSalesData';
 import UtmDashboard from './components/UtmDashboard';
+import RefundsDashboard from './components/RefundsDashboard';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -221,9 +222,13 @@ function App() {
         <button className={`tab-btn ${activeTab === 'utm' ? 'active' : ''}`} onClick={() => setActiveTab('utm')}>
           Vendas por UTM
         </button>
+        <button className={`tab-btn ${activeTab === 'reembolsos' ? 'active' : ''}`} onClick={() => setActiveTab('reembolsos')}>
+          Reembolsos
+        </button>
       </div>
 
       {activeTab === 'utm' && <UtmDashboard />}
+      {activeTab === 'reembolsos' && <RefundsDashboard />}
 
       {activeTab === 'principal' && <>
 
