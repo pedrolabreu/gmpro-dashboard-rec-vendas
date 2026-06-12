@@ -187,25 +187,27 @@ function App() {
 
   // ── KPIs baseados no período filtrado ──────────────────────────────────────
 
+  const CUSTO_POR_ENVIO = 1.11;
+
   const last               = salesData.length ? salesData[salesData.length - 1] : allData[allData.length - 1];
   const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
-  const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
-  const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
-  const totalVendasPeriodo  = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
+  const totalVendasPeriodo = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
 
-  const filtrando          = produtoFiltro !== 'Todos';
+  const filtrando = produtoFiltro !== 'Todos';
 
   // Envios filtrados por produto (via aba Envios - Recuperação)
-  const tipoEnvio    = filtrando ? (PRODUTO_TIPO_MAP[produtoFiltro] ?? null) : null;
-  const from         = startDate ? fromInputVal(startDate) : null;
-  const to           = endDate   ? fromInputVal(endDate)   : null;
-  const totalEnvios  = filtrando
+  const tipoEnvio   = filtrando ? (PRODUTO_TIPO_MAP[produtoFiltro] ?? null) : null;
+  const from        = startDate ? fromInputVal(startDate) : null;
+  const to          = endDate   ? fromInputVal(endDate)   : null;
+  const totalEnvios = filtrando
     ? countEnvios(tipoEnvio, from, to)
     : salesData.reduce((s, d) => s + d.quantEnvios, 0);
 
+  // Gasto = R$1,11 × envios do período (ou do produto filtrado)
+  const gastoPeriodoSum    = totalEnvios * CUSTO_POR_ENVIO;
   const vendasExibido      = filtrando ? utmFiltrado.length : totalVendasPeriodo;
   const faturamentoExibido = filtrando ? utmFiltrado.reduce((s, r) => s + r.valor, 0) : fatPeriodoSum;
-  const roiExibido         = filtrando ? (gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0) : roiCalculado;
+  const roiExibido         = gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0;
   const conversaoPeriodo   = totalEnvios > 0 ? (vendasExibido / totalEnvios) * 100 : 0;
 
   const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
