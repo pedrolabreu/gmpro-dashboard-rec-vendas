@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import './App.css';
 import { useSalesData } from './hooks/useSalesData';
 import { useUtmData } from './hooks/useUtmData';
+import { useEnviosData } from './hooks/useEnviosData';
+import { PRODUTO_TIPO_MAP } from './config';
 import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
 import {
@@ -97,6 +99,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
   const { data: utmAllData } = useUtmData();
+  const { countEnvios } = useEnviosData();
 
   const [activeTab, setActiveTab]       = useState('principal');
   const [activePreset, setActivePreset] = useState('Tudo');
@@ -185,13 +188,21 @@ function App() {
   // ── KPIs baseados no período filtrado ──────────────────────────────────────
 
   const last               = salesData.length ? salesData[salesData.length - 1] : allData[allData.length - 1];
-  const totalEnvios        = salesData.reduce((s, d) => s + d.quantEnvios, 0);
   const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
   const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
   const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
   const totalVendasPeriodo  = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
 
   const filtrando          = produtoFiltro !== 'Todos';
+
+  // Envios filtrados por produto (via aba Envios - Recuperação)
+  const tipoEnvio    = filtrando ? (PRODUTO_TIPO_MAP[produtoFiltro] ?? null) : null;
+  const from         = startDate ? fromInputVal(startDate) : null;
+  const to           = endDate   ? fromInputVal(endDate)   : null;
+  const totalEnvios  = filtrando
+    ? countEnvios(tipoEnvio, from, to)
+    : salesData.reduce((s, d) => s + d.quantEnvios, 0);
+
   const vendasExibido      = filtrando ? utmFiltrado.length : totalVendasPeriodo;
   const faturamentoExibido = filtrando ? utmFiltrado.reduce((s, r) => s + r.valor, 0) : fatPeriodoSum;
   const roiExibido         = filtrando ? (gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0) : roiCalculado;
