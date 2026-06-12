@@ -166,6 +166,26 @@ function App() {
     });
   }, [utmAllData, produtoFiltro, startDate, endDate]);
 
+  // Reembolsos filtrados por produto + período (antes dos early returns)
+  const reembolsosExibido = useMemo(() => {
+    const from = startDate ? fromInputVal(startDate) : null;
+    const to   = endDate   ? fromInputVal(endDate)   : null;
+    const filtra = produtoFiltro !== 'Todos';
+    return allReembolsos.filter(r => {
+      if (filtra && r.produto !== produtoFiltro) return false;
+      const d = (() => {
+        if (!r.data) return null;
+        const parts = r.data.includes('/') ? r.data.split('/') : r.data.split('-').reverse();
+        const [day, mon, yr] = parts.map(Number);
+        return new Date(yr, mon - 1, day);
+      })();
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    }).length;
+  }, [allReembolsos, produtoFiltro, startDate, endDate]);
+
   // ── Loading / empty states ──────────────────────────────────────────────────
 
   if (loading) {
@@ -211,23 +231,6 @@ function App() {
   const faturamentoExibido = filtrando ? utmFiltrado.reduce((s, r) => s + r.valor, 0) : fatPeriodoSum;
   const roiExibido         = gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0;
   const conversaoPeriodo   = totalEnvios > 0 ? (vendasExibido / totalEnvios) * 100 : 0;
-
-  // Reembolsos filtrados por produto + período
-  const reembolsosExibido = useMemo(() => {
-    return allReembolsos.filter(r => {
-      if (filtrando && r.produto !== produtoFiltro) return false;
-      const d = (() => {
-        if (!r.data) return null;
-        const parts = r.data.includes('/') ? r.data.split('/') : r.data.split('-').reverse();
-        const [day, mon, yr] = parts.map(Number);
-        return new Date(yr, mon - 1, day);
-      })();
-      if (!d) return false;
-      if (from && d < from) return false;
-      if (to   && d > to)   return false;
-      return true;
-    }).length;
-  }, [allReembolsos, filtrando, produtoFiltro, from, to]);
 
   // Lucro = Faturamento - Gasto
   const lucroExibido = faturamentoExibido - gastoPeriodoSum;
