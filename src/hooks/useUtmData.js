@@ -31,9 +31,9 @@ function getIndices(cols) {
   const c3 = cols[3]?.trim() ?? '';
   const c2 = cols[2]?.trim() ?? '';
   if (c3.startsWith('R$') || c3.replace(/[^0-9]/g, '').length > 0 && !c2.startsWith('R$')) {
-    return { valorIdx: 3, termIdx: 4, mediumIdx: 5 };
+    return { valorIdx: 3, termIdx: 4, mediumIdx: 5, produtoIdx: 7 };
   }
-  return { valorIdx: 2, termIdx: 3, mediumIdx: 4 };
+  return { valorIdx: 2, termIdx: 3, mediumIdx: 4, produtoIdx: 6 };
 }
 
 function parseCSV(text) {
@@ -48,7 +48,7 @@ function parseCSV(text) {
     if (!data) return null;
 
     if (!indices) indices = getIndices(cols);
-    const { valorIdx, termIdx, mediumIdx } = indices;
+    const { valorIdx, termIdx, mediumIdx, produtoIdx } = indices;
 
     return {
       data:      data,
@@ -56,6 +56,7 @@ function parseCSV(text) {
       valor:     parseVal(cols[valorIdx]),
       utmTerm:   cols[termIdx]?.trim() ?? '',
       utmMedium: cols[mediumIdx]?.trim() ?? '',
+      produto:   cols[produtoIdx]?.trim() ?? '',
     };
   }).filter(Boolean);
 }

@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from 'recharts';
-import { RefreshCw, AlertCircle, DollarSign, ShoppingCart, Tag, Wifi, Calendar } from 'lucide-react';
+import { RefreshCw, AlertCircle, DollarSign, ShoppingCart, Tag, Wifi, Calendar, Package } from 'lucide-react';
 
 const fmt = (v) =>
   v == null || isNaN(v) ? '—' :
@@ -80,8 +80,15 @@ export default function UtmDashboard() {
   const [activePreset, setActivePreset] = useState('Tudo');
   const [startDate, setStartDate]       = useState('');
   const [endDate, setEndDate]           = useState('');
+  const [produtoFiltro, setProdutoFiltro] = useState('Todos');
 
-  // Filtered data
+  // Lista de produtos únicos
+  const produtos = useMemo(() => {
+    const set = new Set(allData.map(r => r.produto).filter(Boolean));
+    return ['Todos', ...Array.from(set).sort()];
+  }, [allData]);
+
+  // Filtered data (data + produto)
   const data = useMemo(() => {
     if (!allData.length) return [];
     const from = startDate ? fromInputVal(startDate) : null;
@@ -91,9 +98,10 @@ export default function UtmDashboard() {
       if (!d) return false;
       if (from && d < from) return false;
       if (to   && d > to)   return false;
+      if (produtoFiltro !== 'Todos' && row.produto !== produtoFiltro) return false;
       return true;
     });
-  }, [allData, startDate, endDate]);
+  }, [allData, startDate, endDate, produtoFiltro]);
 
   const applyPreset = useCallback((preset) => {
     setActivePreset(preset.label);
@@ -163,6 +171,27 @@ export default function UtmDashboard() {
           <RefreshCw size={14} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
           {refreshing ? 'Atualizando...' : 'Atualizar'}
         </button>
+      </div>
+
+      {/* PRODUCT FILTER */}
+      <div className="date-filter" style={{ marginBottom: 10 }}>
+        <div className="date-filter-left">
+          <Package size={14} color="#cc0000" />
+          <span className="date-filter-label">Produto:</span>
+        </div>
+        <div className="date-filter-right">
+          <div className="preset-group">
+            {produtos.map(p => (
+              <button
+                key={p}
+                className={`preset-btn ${produtoFiltro === p ? 'active' : ''}`}
+                onClick={() => setProdutoFiltro(p)}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* DATE FILTER */}
@@ -308,6 +337,7 @@ export default function UtmDashboard() {
                 <th>Data</th>
                 <th>Email</th>
                 <th>Valor</th>
+                <th>Produto</th>
                 <th>UTM Term</th>
                 <th>UTM Medium</th>
               </tr>
@@ -318,6 +348,7 @@ export default function UtmDashboard() {
                   <td className="dia">{row.data}</td>
                   <td style={{ color: '#666', fontSize: 12 }}>{maskEmail(row.email)}</td>
                   <td className="valor-positivo">{fmt(row.valor)}</td>
+                  <td style={{ color: '#ccc', fontSize: 12 }}>{row.produto || '—'}</td>
                   <td><span style={{ background: '#1a0000', color: '#cc0000', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>{row.utmTerm}</span></td>
                   <td style={{ color: '#888' }}>{row.utmMedium}</td>
                 </tr>
