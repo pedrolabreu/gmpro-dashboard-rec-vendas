@@ -232,8 +232,8 @@ function App() {
   const roiExibido         = gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0;
   const conversaoPeriodo   = totalEnvios > 0 ? (vendasExibido / totalEnvios) * 100 : 0;
 
-  // Lucro = Faturamento - Gasto
-  const lucroExibido = faturamentoExibido - gastoPeriodoSum;
+  // Lucro = Faturamento - Gasto - 10% imposto sobre faturamento
+  const lucroExibido = faturamentoExibido * 0.90 - gastoPeriodoSum;
 
   const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
 
