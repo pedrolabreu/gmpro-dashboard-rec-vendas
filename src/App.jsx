@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import './App.css';
 import { useSalesData } from './hooks/useSalesData';
+import { useUtmData } from './hooks/useUtmData';
 import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
 import {
@@ -8,8 +9,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
-  TrendingUp, DollarSign, Send, BarChart2, Activity,
-  Calendar, RefreshCw, AlertCircle, Database, ShoppingCart, Percent, RotateCcw,
+  TrendingUp, DollarSign, Send, BarChart2,
+  Calendar, RefreshCw, AlertCircle, Database, ShoppingCart, Percent, RotateCcw, Package,
 } from 'lucide-react';
 
 // ─── FORMATTERS ──────────────────────────────────────────────────────────────
@@ -95,11 +96,19 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
+  const { data: utmAllData } = useUtmData();
 
   const [activeTab, setActiveTab]       = useState('principal');
   const [activePreset, setActivePreset] = useState('Tudo');
   const [startDate, setStartDate]       = useState('');
   const [endDate, setEndDate]           = useState('');
+  const [produtoFiltro, setProdutoFiltro] = useState('Todos');
+
+  // Lista de produtos da aba Vendas
+  const produtos = useMemo(() => {
+    const set = new Set(utmAllData.map(r => r.produto).filter(Boolean));
+    return ['Todos', ...Array.from(set).sort()];
+  }, [utmAllData]);
 
   // Aplica filtro de datas
   const salesData = useMemo(() => {
@@ -163,12 +172,30 @@ function App() {
 
   const last               = salesData.length ? salesData[salesData.length - 1] : allData[allData.length - 1];
   const totalEnvios        = salesData.reduce((s, d) => s + d.quantEnvios, 0);
-  const diasComFaturamento = salesData.filter(d => d.faturamentoPeriodo > 0).length;
   const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
   const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
   const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
   const totalVendasPeriodo  = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
-  const conversaoPeriodo    = totalEnvios > 0 ? (totalVendasPeriodo / totalEnvios) * 100 : 0;
+
+  // UTM filtrado por produto + período (para KPIs de produto)
+  const utmFiltrado = useMemo(() => {
+    const from = startDate ? fromInputVal(startDate) : null;
+    const to   = endDate   ? fromInputVal(endDate)   : null;
+    return utmAllData.filter(r => {
+      if (produtoFiltro !== 'Todos' && r.produto !== produtoFiltro) return false;
+      const d = parseDate(r.data);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    });
+  }, [utmAllData, produtoFiltro, startDate, endDate]);
+
+  const filtrando          = produtoFiltro !== 'Todos';
+  const vendasExibido      = filtrando ? utmFiltrado.length : totalVendasPeriodo;
+  const faturamentoExibido = filtrando ? utmFiltrado.reduce((s, r) => s + r.valor, 0) : fatPeriodoSum;
+  const roiExibido         = filtrando ? (gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0) : roiCalculado;
+  const conversaoPeriodo   = totalEnvios > 0 ? (vendasExibido / totalEnvios) * 100 : 0;
 
   const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
 
@@ -232,6 +259,27 @@ function App() {
 
       {activeTab === 'principal' && <>
 
+      {/* PRODUCT FILTER */}
+      <div className="date-filter" style={{ marginBottom: 10 }}>
+        <div className="date-filter-left">
+          <Package size={14} color="#cc0000" />
+          <span className="date-filter-label">Produto:</span>
+        </div>
+        <div className="date-filter-right">
+          <div className="preset-group">
+            {produtos.map(p => (
+              <button
+                key={p}
+                className={`preset-btn ${produtoFiltro === p ? 'active' : ''}`}
+                onClick={() => setProdutoFiltro(p)}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* DATE FILTER */}
       <div className="date-filter">
         <div className="date-filter-left">
@@ -290,20 +338,20 @@ function App() {
         <div className="kpi-card highlight">
           <div className="kpi-icon"><TrendingUp size={16} /></div>
           <div className="kpi-label">ROI do Período</div>
-          <div className="kpi-value red">{fmtROI(roiCalculado)}</div>
-          <div className="kpi-sub">Fat. ÷ Gasto</div>
+          <div className="kpi-value red">{fmtROI(roiExibido)}</div>
+          <div className="kpi-sub">{filtrando ? 'Fat. produto ÷ Gasto total' : 'Fat. ÷ Gasto'}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-icon"><DollarSign size={16} /></div>
           <div className="kpi-label">Faturamento Período</div>
-          <div className="kpi-value">{fmt(fatPeriodoSum)}</div>
-          <div className="kpi-sub">Receita no período</div>
+          <div className="kpi-value">{fmt(faturamentoExibido)}</div>
+          <div className="kpi-sub">{filtrando ? produtoFiltro : 'Receita no período'}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-icon"><BarChart2 size={16} /></div>
           <div className="kpi-label">Gasto Período</div>
           <div className="kpi-value">{fmt(gastoPeriodoSum)}</div>
-          <div className="kpi-sub">Investimento</div>
+          <div className="kpi-sub">Investimento total</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-icon"><Send size={16} /></div>
@@ -314,8 +362,8 @@ function App() {
         <div className="kpi-card">
           <div className="kpi-icon"><ShoppingCart size={16} /></div>
           <div className="kpi-label">Vendas Período</div>
-          <div className="kpi-value">{totalVendasPeriodo.toLocaleString('pt-BR')}</div>
-          <div className="kpi-sub">Conversões no período</div>
+          <div className="kpi-value">{vendasExibido.toLocaleString('pt-BR')}</div>
+          <div className="kpi-sub">{filtrando ? produtoFiltro : 'Conversões no período'}</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-icon"><Percent size={16} /></div>

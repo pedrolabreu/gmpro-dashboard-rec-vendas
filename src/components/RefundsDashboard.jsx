@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line,
 } from 'recharts';
-import { RefreshCw, AlertCircle, DollarSign, RotateCcw, Tag, Calendar } from 'lucide-react';
+import { RefreshCw, AlertCircle, DollarSign, RotateCcw, Tag, Calendar, Package } from 'lucide-react';
 
 const fmt = (v) =>
   v == null || isNaN(v) ? '—' :
@@ -99,6 +99,12 @@ export default function RefundsDashboard() {
   const [activePreset, setActivePreset] = useState('Tudo');
   const [startDate, setStartDate]       = useState('');
   const [endDate, setEndDate]           = useState('');
+  const [produtoFiltro, setProdutoFiltro] = useState('Todos');
+
+  const produtos = useMemo(() => {
+    const set = new Set(allRows.map(r => r.produto).filter(Boolean));
+    return set.size > 0 ? ['Todos', ...Array.from(set).sort()] : [];
+  }, [allRows]);
 
   const rows = useMemo(() => {
     if (!allRows.length) return [];
@@ -109,9 +115,10 @@ export default function RefundsDashboard() {
       if (!d) return false;
       if (from && d < from) return false;
       if (to   && d > to)   return false;
+      if (produtoFiltro !== 'Todos' && r.produto !== produtoFiltro) return false;
       return true;
     });
-  }, [allRows, startDate, endDate]);
+  }, [allRows, startDate, endDate, produtoFiltro]);
 
   const applyPreset = useCallback((preset) => {
     setActivePreset(preset.label);
@@ -179,6 +186,29 @@ export default function RefundsDashboard() {
           {refreshing ? 'Atualizando...' : 'Atualizar'}
         </button>
       </div>
+
+      {/* PRODUCT FILTER */}
+      {produtos.length > 0 && (
+        <div className="date-filter" style={{ marginBottom: 10 }}>
+          <div className="date-filter-left">
+            <Package size={14} color="#cc0000" />
+            <span className="date-filter-label">Produto:</span>
+          </div>
+          <div className="date-filter-right">
+            <div className="preset-group">
+              {produtos.map(p => (
+                <button
+                  key={p}
+                  className={`preset-btn ${produtoFiltro === p ? 'active' : ''}`}
+                  onClick={() => setProdutoFiltro(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DATE FILTER */}
       <div className="date-filter">
