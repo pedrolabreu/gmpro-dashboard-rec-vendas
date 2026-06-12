@@ -147,6 +147,20 @@ function App() {
     else setEndDate(val);
   }
 
+  // UTM filtrado por produto + período (deve ficar antes dos early returns)
+  const utmFiltrado = useMemo(() => {
+    const from = startDate ? fromInputVal(startDate) : null;
+    const to   = endDate   ? fromInputVal(endDate)   : null;
+    return utmAllData.filter(r => {
+      if (produtoFiltro !== 'Todos' && r.produto !== produtoFiltro) return false;
+      const d = parseDate(r.data);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    });
+  }, [utmAllData, produtoFiltro, startDate, endDate]);
+
   // ── Loading / empty states ──────────────────────────────────────────────────
 
   if (loading) {
@@ -176,20 +190,6 @@ function App() {
   const gastoPeriodoSum    = salesData.reduce((s, d) => s + d.gastoperiodo, 0);
   const roiCalculado       = gastoPeriodoSum > 0 ? fatPeriodoSum / gastoPeriodoSum : 0;
   const totalVendasPeriodo  = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
-
-  // UTM filtrado por produto + período (para KPIs de produto)
-  const utmFiltrado = useMemo(() => {
-    const from = startDate ? fromInputVal(startDate) : null;
-    const to   = endDate   ? fromInputVal(endDate)   : null;
-    return utmAllData.filter(r => {
-      if (produtoFiltro !== 'Todos' && r.produto !== produtoFiltro) return false;
-      const d = parseDate(r.data);
-      if (!d) return false;
-      if (from && d < from) return false;
-      if (to   && d > to)   return false;
-      return true;
-    });
-  }, [utmAllData, produtoFiltro, startDate, endDate]);
 
   const filtrando          = produtoFiltro !== 'Todos';
   const vendasExibido      = filtrando ? utmFiltrado.length : totalVendasPeriodo;
