@@ -3,6 +3,7 @@ import './App.css';
 import { useSalesData } from './hooks/useSalesData';
 import { useUtmData } from './hooks/useUtmData';
 import { useEnviosData } from './hooks/useEnviosData';
+import { useRefundData } from './hooks/useRefundData';
 import { PRODUTO_TIPO_MAP } from './config';
 import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
@@ -100,6 +101,7 @@ function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
   const { data: utmAllData } = useUtmData();
   const { countEnvios } = useEnviosData();
+  const { rows: allReembolsos } = useRefundData();
 
   const [activeTab, setActiveTab]       = useState('principal');
   const [activePreset, setActivePreset] = useState('Tudo');
@@ -209,6 +211,26 @@ function App() {
   const faturamentoExibido = filtrando ? utmFiltrado.reduce((s, r) => s + r.valor, 0) : fatPeriodoSum;
   const roiExibido         = gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0;
   const conversaoPeriodo   = totalEnvios > 0 ? (vendasExibido / totalEnvios) * 100 : 0;
+
+  // Reembolsos filtrados por produto + período
+  const reembolsosExibido = useMemo(() => {
+    return allReembolsos.filter(r => {
+      if (filtrando && r.produto !== produtoFiltro) return false;
+      const d = (() => {
+        if (!r.data) return null;
+        const parts = r.data.includes('/') ? r.data.split('/') : r.data.split('-').reverse();
+        const [day, mon, yr] = parts.map(Number);
+        return new Date(yr, mon - 1, day);
+      })();
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to   && d > to)   return false;
+      return true;
+    }).length;
+  }, [allReembolsos, filtrando, produtoFiltro, from, to]);
+
+  // Lucro = Faturamento - Gasto
+  const lucroExibido = faturamentoExibido - gastoPeriodoSum;
 
   const chartData = salesData.map(d => ({ ...d, label: d.dia.slice(0, 5) }));
 
@@ -387,16 +409,16 @@ function App() {
         <div className="kpi-card">
           <div className="kpi-icon"><RotateCcw size={16} /></div>
           <div className="kpi-label">Reembolsos</div>
-          <div className="kpi-value">{salesData.reduce((s, d) => s + (d.quantReembolsos || 0), 0).toLocaleString('pt-BR')}</div>
-          <div className="kpi-sub">No período filtrado</div>
+          <div className="kpi-value">{reembolsosExibido.toLocaleString('pt-BR')}</div>
+          <div className="kpi-sub">{filtrando ? produtoFiltro : 'No período filtrado'}</div>
         </div>
-        <div className={`kpi-card ${salesData.reduce((s, d) => s + (d.lucroPeriodo || 0), 0) >= 0 ? '' : 'kpi-negativo'}`}>
+        <div className={`kpi-card ${lucroExibido >= 0 ? '' : 'kpi-negativo'}`}>
           <div className="kpi-icon"><DollarSign size={16} /></div>
           <div className="kpi-label">Lucro do Período</div>
-          <div className={`kpi-value ${salesData.reduce((s, d) => s + (d.lucroPeriodo || 0), 0) >= 0 ? 'positivo' : 'negativo'}`}>
-            {fmt(salesData.reduce((s, d) => s + (d.lucroPeriodo || 0), 0))}
+          <div className={`kpi-value ${lucroExibido >= 0 ? 'positivo' : 'negativo'}`}>
+            {fmt(lucroExibido)}
           </div>
-          <div className="kpi-sub">Lucro líquido no filtro</div>
+          <div className="kpi-sub">Faturamento − Gasto</div>
         </div>
       </div>
 
