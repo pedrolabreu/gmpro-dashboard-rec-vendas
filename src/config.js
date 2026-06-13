@@ -15,3 +15,9 @@ export const PRODUTO_TIPO_MAP = {
   'Strong Base - Segunda Força': 'recuperacao',
   'Strong Pump': 'segunda_tentativa',
 };
+
+// Custo por envio conforme o tipo
+export const TIPO_CUSTO_MAP = {
+  'recuperacao':       1.11,
+  'segunda_tentativa': 0.37,
+};

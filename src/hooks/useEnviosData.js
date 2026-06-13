@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ENVIOS_CSV_URL } from '../config';
+import { ENVIOS_CSV_URL, TIPO_CUSTO_MAP } from '../config';
 
 const AUTO_REFRESH_MS = 60 * 1000;
 
@@ -89,8 +89,23 @@ export function useEnviosData() {
     }).length;
   }, [data]);
 
+  // Calcula gasto total para um intervalo, aplicando custo por tipo
+  // Se tipo fornecido: filtra só aquele tipo; senão, soma todos os tipos
+  const calcGasto = useCallback((tipo, from, to) => {
+    const tipoNorm = normalizeTipo(tipo);
+    return data.reduce((sum, r) => {
+      if (tipoNorm && r.tipo !== tipoNorm) return sum;
+      const d = parseDate(r.data);
+      if (!d) return sum;
+      if (from && d < from) return sum;
+      if (to   && d > to)   return sum;
+      const custo = TIPO_CUSTO_MAP[r.tipo] ?? 0;
+      return sum + custo;
+    }, 0);
+  }, [data]);
+
   // Tipos únicos encontrados no sheet (útil para debug)
   const tiposUnicos = useMemo(() => [...new Set(data.map(r => r.tipo))], [data]);
 
-  return { data, loading, error, countEnvios, tiposUnicos };
+  return { data, loading, error, countEnvios, calcGasto, tiposUnicos };
 }

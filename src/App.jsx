@@ -102,7 +102,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
   const { data: utmAllData } = useUtmData();
-  const { countEnvios, tiposUnicos } = useEnviosData();
+  const { countEnvios, calcGasto, tiposUnicos } = useEnviosData();
   const { rows: allReembolsos } = useRefundData();
 
   const [activeTab, setActiveTab]       = useState('principal');
@@ -223,8 +223,6 @@ function App() {
 
   // ── KPIs baseados no período filtrado ──────────────────────────────────────
 
-  const CUSTO_POR_ENVIO = 1.11;
-
   const last               = salesData.length ? salesData[salesData.length - 1] : allData[allData.length - 1];
   const fatPeriodoSum      = salesData.reduce((s, d) => s + d.faturamentoPeriodo, 0);
   const totalVendasPeriodo = salesData.reduce((s, d) => s + d.quantVendasPeriodo, 0);
@@ -239,8 +237,10 @@ function App() {
     ? countEnvios(tipoEnvio, from, to)
     : salesData.reduce((s, d) => s + d.quantEnvios, 0);
 
-  // Gasto = R$1,11 × envios do período (ou do produto filtrado)
-  const gastoPeriodoSum    = totalEnvios * CUSTO_POR_ENVIO;
+  // Gasto calculado dinamicamente: R$1,11/recuperacao ou R$0,37/segunda_tentativa
+  const gastoPeriodoSum    = filtrando
+    ? calcGasto(tipoEnvio, from, to)
+    : calcGasto(null, from, to);
   const vendasExibido      = filtrando ? utmFiltrado.length : totalVendasPeriodo;
   const faturamentoExibido = filtrando ? utmFiltrado.reduce((s, r) => s + r.valor, 0) : fatPeriodoSum;
   const roiExibido         = gastoPeriodoSum > 0 ? faturamentoExibido / gastoPeriodoSum : 0;
