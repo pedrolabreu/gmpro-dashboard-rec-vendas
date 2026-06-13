@@ -102,7 +102,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
   const { data: utmAllData } = useUtmData();
-  const { countEnvios } = useEnviosData();
+  const { countEnvios, tiposUnicos } = useEnviosData();
   const { rows: allReembolsos } = useRefundData();
 
   const [activeTab, setActiveTab]       = useState('principal');
@@ -275,6 +275,7 @@ function App() {
               ? <>Google Sheets · {updatedAt ? new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</>
               : 'Dados locais'}
             {error && <span style={{ color: '#cc0000', marginLeft: 4 }}>· {error}</span>}
+            {tiposUnicos.length > 0 && <span style={{ color: '#333', marginLeft: 4 }}>· envios: [{tiposUnicos.join(', ')}]</span>}
           </div>
 
           {/* Botão de refresh */}

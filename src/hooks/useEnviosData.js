@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ENVIOS_CSV_URL } from '../config';
 
 const AUTO_REFRESH_MS = 60 * 1000;
@@ -30,6 +30,11 @@ function parseDate(str) {
   return null;
 }
 
+// Normaliza o tipo: minúsculo, substitui hífen/espaço por underscore
+function normalizeTipo(s) {
+  return (s ?? '').trim().toLowerCase().replace(/[-\s]/g, '_');
+}
+
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
@@ -39,7 +44,7 @@ function parseCSV(text) {
     if (!data) return null;
     return {
       data,
-      tipo: cols[4]?.trim().toLowerCase() ?? '', // col E: recuperacao / onboarding
+      tipo: normalizeTipo(cols[4]), // col E normalizada
     };
   }).filter(Boolean);
 }
@@ -73,8 +78,9 @@ export function useEnviosData() {
 
   // Conta envios filtrados por tipo e intervalo de datas
   const countEnvios = useCallback((tipo, from, to) => {
+    const tipoNorm = normalizeTipo(tipo);
     return data.filter(r => {
-      if (tipo && r.tipo !== tipo) return false;
+      if (tipoNorm && r.tipo !== tipoNorm) return false;
       const d = parseDate(r.data);
       if (!d) return false;
       if (from && d < from) return false;
@@ -83,5 +89,8 @@ export function useEnviosData() {
     }).length;
   }, [data]);
 
-  return { data, loading, error, countEnvios };
+  // Tipos únicos encontrados no sheet (útil para debug)
+  const tiposUnicos = useMemo(() => [...new Set(data.map(r => r.tipo))], [data]);
+
+  return { data, loading, error, countEnvios, tiposUnicos };
 }
