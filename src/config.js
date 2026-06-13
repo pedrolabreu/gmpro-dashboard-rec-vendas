@@ -13,5 +13,5 @@ export const ENVIOS_CSV_URL =
 // Mapeamento produto → tipo de envio na aba Envios - Recuperação
 export const PRODUTO_TIPO_MAP = {
   'Strong Base - Segunda Força': 'recuperacao',
-  'Strong Pump': 'onboarding',
+  'Strong Pump': 'segunda_tentativa',
 };
