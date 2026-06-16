@@ -4,35 +4,22 @@ import { useSalesData } from './hooks/useSalesData';
 import { useUtmData } from './hooks/useUtmData';
 import { useEnviosData } from './hooks/useEnviosData';
 import { useRefundData } from './hooks/useRefundData';
+import { useDateRangeFilter } from './hooks/useDateRangeFilter';
 import { PRODUTO_TIPO_MAP } from './config';
+import { parseDate, fromInputVal } from './utils/date';
+import { fmt, fmtROI, fmtPct, formatTick } from './utils/format';
 import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
+import ChartTooltip from './components/ChartTooltip';
+import { ProductFilter, PeriodFilter } from './components/FilterBar';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
   TrendingUp, DollarSign, Send, BarChart2,
-  Calendar, RefreshCw, AlertCircle, Database, ShoppingCart, Percent, RotateCcw, Package,
+  RefreshCw, AlertCircle, Database, ShoppingCart, Percent, RotateCcw,
 } from 'lucide-react';
-
-// ─── FORMATTERS ──────────────────────────────────────────────────────────────
-
-const fmt = (v) =>
-  v == null || isNaN(v) ? '—' :
-  'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const fmtROI = (v) =>
-  v == null || isNaN(v) || !isFinite(v) ? '—' : v.toFixed(1) + 'x';
-
-const fmtPct = (v) =>
-  v == null || isNaN(v) ? '—' : v.toFixed(2) + '%';
-
-const formatTick = (v) => {
-  if (v == null) return '';
-  if (v >= 1000) return 'R$' + (v / 1000).toFixed(1) + 'k';
-  return 'R$' + v;
-};
 
 const roiClass = (roi) => {
   if (roi == null || isNaN(roi)) return 'roi-baixo';
@@ -41,61 +28,11 @@ const roiClass = (roi) => {
   return 'roi-baixo';
 };
 
-// ─── DATE UTILS ──────────────────────────────────────────────────────────────
-
-// "dd/MM/yyyy" → Date
-const parseDate = (str) => {
-  if (!str) return null;
-  const [d, m, y] = str.split('/');
-  return new Date(+y, +m - 1, +d);
-};
-
-// Date → "yyyy-MM-dd" (valor do input[type=date])
-// Usa componentes locais para evitar bug de fuso horário com toISOString()
-const toInputVal = (date) => {
-  if (!date) return '';
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
-
-// "yyyy-MM-dd" → Date
-const fromInputVal = (str) => {
-  if (!str) return null;
-  const [y, m, d] = str.split('-');
-  return new Date(+y, +m - 1, +d);
-};
-
-const PRESETS = [
-  { label: 'Hoje',  type: 'today' },
-  { label: 'Ontem', type: 'yesterday' },
-  { label: '7d',    days: 7 },
-  { label: '14d',   days: 14 },
-  { label: '30d',   days: 30 },
-  { label: 'Tudo',  days: null },
-];
-
-// ─── TOOLTIP ─────────────────────────────────────────────────────────────────
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: '#111', border: '1px solid #222', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-      <p style={{ color: '#666', marginBottom: 6, fontSize: 11 }}>{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, marginBottom: 2 }}>
-          {p.name}: <strong>
-            {p.name.includes('ROI') ? fmtROI(p.value)
-              : p.name.includes('%') ? fmtPct(p.value)
-              : (p.name === 'Envios' || p.name === 'Vendas') ? p.value
-              : fmt(p.value)}
-          </strong>
-        </p>
-      ))}
-    </div>
-  );
-};
+const formatTooltipValue = (name, value) =>
+  name.includes('ROI') ? fmtROI(value)
+    : name.includes('%') ? fmtPct(value)
+    : (name === 'Envios' || name === 'Vendas') ? value
+    : fmt(value);
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 
@@ -105,11 +42,9 @@ function App() {
   const { countEnvios, calcGasto, tiposUnicos } = useEnviosData();
   const { rows: allReembolsos } = useRefundData();
 
-  const [activeTab, setActiveTab]       = useState('principal');
-  const [activePreset, setActivePreset] = useState('Tudo');
-  const [startDate, setStartDate]       = useState('');
-  const [endDate, setEndDate]           = useState('');
+  const [activeTab, setActiveTab]         = useState('principal');
   const [produtoFiltro, setProdutoFiltro] = useState('Todos');
+  const { activePreset, startDate, endDate, applyPreset, handleDateChange, clear } = useDateRangeFilter();
 
   // Lista de produtos da aba Vendas
   const produtos = useMemo(() => {
@@ -133,39 +68,6 @@ function App() {
     });
   }, [allData, startDate, endDate]);
 
-  function applyPreset(preset) {
-    setActivePreset(preset.label);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (preset.type === 'today') {
-      setStartDate(toInputVal(today));
-      setEndDate(toInputVal(today));
-      return;
-    }
-    if (preset.type === 'yesterday') {
-      const ontem = new Date(today);
-      ontem.setDate(ontem.getDate() - 1);
-      setStartDate(toInputVal(ontem));
-      setEndDate(toInputVal(ontem));
-      return;
-    }
-    if (!preset.days) {
-      setStartDate('');
-      setEndDate('');
-      return;
-    }
-    const from = new Date(today);
-    from.setDate(from.getDate() - preset.days + 1);
-    setStartDate(toInputVal(from));
-    setEndDate(toInputVal(today));
-  }
-
-  function handleDateChange(type, val) {
-    setActivePreset('');
-    if (type === 'start') setStartDate(val);
-    else setEndDate(val);
-  }
-
   // UTM filtrado por produto + período (deve ficar antes dos early returns)
   const utmFiltrado = useMemo(() => {
     const from = startDate ? fromInputVal(startDate) : null;
@@ -187,12 +89,7 @@ function App() {
     const filtra = produtoFiltro !== 'Todos';
     return allReembolsos.filter(r => {
       if (filtra && r.produto !== produtoFiltro) return false;
-      const d = (() => {
-        if (!r.data) return null;
-        const parts = r.data.includes('/') ? r.data.split('/') : r.data.split('-').reverse();
-        const [day, mon, yr] = parts.map(Number);
-        return new Date(yr, mon - 1, day);
-      })();
+      const d = parseDate(r.data);
       if (!d) return false;
       if (from && d < from) return false;
       if (to   && d > to)   return false;
@@ -313,78 +210,18 @@ function App() {
       {activeTab === 'principal' && <>
 
       {/* PRODUCT FILTER */}
-      <div className="date-filter" style={{ marginBottom: 10 }}>
-        <div className="date-filter-left">
-          <Package size={14} color="#cc0000" />
-          <span className="date-filter-label">Produto:</span>
-        </div>
-        <div className="date-filter-right">
-          <div className="preset-group">
-            {produtos.map(p => (
-              <button
-                key={p}
-                className={`preset-btn ${produtoFiltro === p ? 'active' : ''}`}
-                onClick={() => setProdutoFiltro(p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <ProductFilter produtos={produtos} produtoFiltro={produtoFiltro} onChange={setProdutoFiltro} />
 
       {/* DATE FILTER */}
-      <div className="date-filter">
-        <div className="date-filter-left">
-          <Calendar size={14} color="#cc0000" />
-          <span className="date-filter-label">Período:</span>
-          <span className="date-filter-period">{periodoLabel}</span>
-        </div>
-
-        <div className="date-filter-right">
-          {/* Presets */}
-          <div className="preset-group">
-            {PRESETS.map(p => (
-              <button
-                key={p.label}
-                className={`preset-btn ${activePreset === p.label ? 'active' : ''}`}
-                onClick={() => applyPreset(p)}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Date inputs */}
-          <div className="date-inputs">
-            <div className="date-input-wrap">
-              <input
-                type="date"
-                className="date-input"
-                value={startDate}
-                max={endDate || toInputVal(new Date())}
-                onChange={e => handleDateChange('start', e.target.value)}
-              />
-            </div>
-            <span style={{ color: '#333', fontSize: 12 }}>→</span>
-            <div className="date-input-wrap">
-              <input
-                type="date"
-                className="date-input"
-                value={endDate}
-                min={startDate || ''}
-                onChange={e => handleDateChange('end', e.target.value)}
-              />
-            </div>
-          </div>
-
-          {(startDate || endDate) && (
-            <button className="clear-btn" onClick={() => applyPreset({ label: 'Tudo', days: null })}>
-              Limpar
-            </button>
-          )}
-        </div>
-      </div>
+      <PeriodFilter
+        periodoLabel={periodoLabel}
+        activePreset={activePreset}
+        startDate={startDate}
+        endDate={endDate}
+        onApplyPreset={applyPreset}
+        onDateChange={handleDateChange}
+        onClear={clear}
+      />
 
       {/* KPI CARDS */}
       <div className="kpi-grid">
@@ -469,7 +306,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tickFormatter={formatTick} tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Area type="monotone" dataKey="faturamentoTotal" name="Faturamento Total" stroke="#cc0000" fill="url(#fatGrad)" strokeWidth={2} dot={false} />
               <Area type="monotone" dataKey="gastoTotal" name="Gasto Total" stroke="#555" fill="url(#gastoGrad)" strokeWidth={2} dot={false} />
               <Area type="monotone" dataKey="lucroTotal" name="Lucro Total" stroke="#4ade80" fill="url(#lucroGrad)" strokeWidth={2} dot={false} />
@@ -484,7 +321,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Line type="monotone" dataKey="roiTotal" name="ROI Total" stroke="#cc0000" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -497,7 +334,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Bar dataKey="quantEnvios" name="Envios" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
             </BarChart>
           </ResponsiveContainer>
@@ -510,7 +347,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Bar dataKey="quantVendasPeriodo" name="Vendas" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
             </BarChart>
           </ResponsiveContainer>
@@ -523,7 +360,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v + '%'} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Line type="monotone" dataKey="conversaoPeriodo" name="Conversão Período %" stroke="#cc0000" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="conversaoTotal" name="Conversão Total %" stroke="#444" strokeWidth={2} dot={false} strokeDasharray="4 2" />
             </LineChart>
@@ -541,7 +378,7 @@ function App() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tickFormatter={formatTick} tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Bar dataKey="faturamentoPeriodo" name="Faturamento Período" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
               <Bar dataKey="gastoperiodo" name="Gasto Período" fill="#333" radius={[3, 3, 0, 0]} opacity={0.85} />
             </BarChart>

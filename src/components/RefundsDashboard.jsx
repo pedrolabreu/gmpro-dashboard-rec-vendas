@@ -1,77 +1,19 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useRefundData } from '../hooks/useRefundData';
+import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line,
 } from 'recharts';
-import { RefreshCw, AlertCircle, DollarSign, RotateCcw, Tag, Calendar, Package } from 'lucide-react';
+import { RefreshCw, AlertCircle, DollarSign, RotateCcw, Tag } from 'lucide-react';
+import { parseDate, fromInputVal } from '../utils/date';
+import { fmt, formatTick, maskEmail } from '../utils/format';
+import ChartTooltip from './ChartTooltip';
+import { ProductFilter, PeriodFilter } from './FilterBar';
 
-const fmt = (v) =>
-  v == null || isNaN(v) ? '—' :
-  'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const formatTick = (v) => {
-  if (v == null) return '';
-  if (v >= 1000) return 'R$' + (v / 1000).toFixed(1) + 'k';
-  return 'R$' + v;
-};
-
-const maskEmail = (email) =>
-  typeof email === 'string' && email.includes('@')
-    ? email.replace(/(.{2})(.*)(@.*)/, (_, a, b, c) => a + '***' + c)
-    : email;
-
-const parseDate = (str) => {
-  if (!str) return null;
-  if (str.includes('/')) {
-    const [d, m, y] = str.split('/');
-    return new Date(+y, +m - 1, +d);
-  }
-  if (str.includes('-')) {
-    const [y, m, d] = str.split('-');
-    return new Date(+y, +m - 1, +d);
-  }
-  return null;
-};
-
-const toInputVal = (date) => {
-  if (!date) return '';
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
-
-const fromInputVal = (str) => {
-  if (!str) return null;
-  const [y, m, d] = str.split('-');
-  return new Date(+y, +m - 1, +d);
-};
-
-const PRESETS = [
-  { label: 'Hoje',  type: 'today' },
-  { label: 'Ontem', type: 'yesterday' },
-  { label: '7d',    days: 7 },
-  { label: '14d',   days: 14 },
-  { label: '30d',   days: 30 },
-  { label: 'Tudo',  days: null },
-];
+const formatTooltipValue = (name, value) => (name === 'Valor' ? fmt(value) : value);
 
 const COLORS = ['#cc0000', '#ff3333', '#ff6666', '#ff9999', '#ffcccc'];
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: '#111', border: '1px solid #222', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-      <p style={{ color: '#666', marginBottom: 6, fontSize: 11 }}>{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, marginBottom: 2 }}>
-          {p.name}: <strong>{p.name === 'Valor' ? fmt(p.value) : p.value}</strong>
-        </p>
-      ))}
-    </div>
-  );
-};
 
 function aggregateBy(rows, key) {
   const map = {};
@@ -98,10 +40,8 @@ function groupByDate(rows) {
 export default function RefundsDashboard() {
   const { rows: allRows, headers, loading, refreshing, error, updatedAt, refetch } = useRefundData();
 
-  const [activePreset, setActivePreset] = useState('Tudo');
-  const [startDate, setStartDate]       = useState('');
-  const [endDate, setEndDate]           = useState('');
   const [produtoFiltro, setProdutoFiltro] = useState('Todos');
+  const { activePreset, startDate, endDate, applyPreset, handleDateChange, clear } = useDateRangeFilter();
 
   const produtos = useMemo(() => {
     const set = new Set(allRows.map(r => r.produto).filter(Boolean));
@@ -121,30 +61,6 @@ export default function RefundsDashboard() {
       return true;
     });
   }, [allRows, startDate, endDate, produtoFiltro]);
-
-  const applyPreset = useCallback((preset) => {
-    setActivePreset(preset.label);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (preset.type === 'today') {
-      setStartDate(toInputVal(today)); setEndDate(toInputVal(today)); return;
-    }
-    if (preset.type === 'yesterday') {
-      const ontem = new Date(today); ontem.setDate(ontem.getDate() - 1);
-      setStartDate(toInputVal(ontem)); setEndDate(toInputVal(ontem)); return;
-    }
-    if (!preset.days) { setStartDate(''); setEndDate(''); return; }
-    const from = new Date(today);
-    from.setDate(from.getDate() - preset.days + 1);
-    setStartDate(toInputVal(from));
-    setEndDate(toInputVal(today));
-  }, []);
-
-  function handleDateChange(type, val) {
-    setActivePreset('');
-    if (type === 'start') setStartDate(val);
-    else setEndDate(val);
-  }
 
   const totalValor   = useMemo(() => rows.reduce((s, r) => s + r.valor, 0), [rows]);
   const byMotivo     = useMemo(() => aggregateBy(rows, 'motivo'),  [rows]);
@@ -198,66 +114,19 @@ export default function RefundsDashboard() {
 
       {/* PRODUCT FILTER */}
       {produtos.length > 0 && (
-        <div className="date-filter" style={{ marginBottom: 10 }}>
-          <div className="date-filter-left">
-            <Package size={14} color="#cc0000" />
-            <span className="date-filter-label">Produto:</span>
-          </div>
-          <div className="date-filter-right">
-            <div className="preset-group">
-              {produtos.map(p => (
-                <button
-                  key={p}
-                  className={`preset-btn ${produtoFiltro === p ? 'active' : ''}`}
-                  onClick={() => setProdutoFiltro(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ProductFilter produtos={produtos} produtoFiltro={produtoFiltro} onChange={setProdutoFiltro} />
       )}
 
       {/* DATE FILTER */}
-      <div className="date-filter">
-        <div className="date-filter-left">
-          <Calendar size={14} color="#cc0000" />
-          <span className="date-filter-label">Período:</span>
-          <span className="date-filter-period">{periodoLabel}</span>
-        </div>
-        <div className="date-filter-right">
-          <div className="preset-group">
-            {PRESETS.map(p => (
-              <button
-                key={p.label}
-                className={`preset-btn ${activePreset === p.label ? 'active' : ''}`}
-                onClick={() => applyPreset(p)}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <div className="date-inputs">
-            <div className="date-input-wrap">
-              <input type="date" className="date-input" value={startDate}
-                max={endDate || toInputVal(new Date())}
-                onChange={e => handleDateChange('start', e.target.value)} />
-            </div>
-            <span style={{ color: '#333', fontSize: 12 }}>→</span>
-            <div className="date-input-wrap">
-              <input type="date" className="date-input" value={endDate}
-                min={startDate || ''}
-                onChange={e => handleDateChange('end', e.target.value)} />
-            </div>
-          </div>
-          {(startDate || endDate) && (
-            <button className="clear-btn" onClick={() => applyPreset({ label: 'Tudo', days: null })}>
-              Limpar
-            </button>
-          )}
-        </div>
-      </div>
+      <PeriodFilter
+        periodoLabel={periodoLabel}
+        activePreset={activePreset}
+        startDate={startDate}
+        endDate={endDate}
+        onApplyPreset={applyPreset}
+        onDateChange={handleDateChange}
+        onClear={clear}
+      />
 
       {/* KPI CARDS */}
       <div className="kpi-grid">
@@ -300,7 +169,7 @@ export default function RefundsDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#888', fontSize: 10 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Line type="monotone" dataKey="count" name="Reembolsos" stroke="#cc0000" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -315,7 +184,7 @@ export default function RefundsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" horizontal={false} />
                 <XAxis type="number" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fill: '#888', fontSize: 10 }} tickLine={false} axisLine={false} width={130} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
                 <Bar dataKey="count" name="Qtd" radius={[0, 3, 3, 0]}>
                   {byMotivo.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
@@ -333,7 +202,7 @@ export default function RefundsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" horizontal={false} />
                 <XAxis type="number" tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" tick={{ fill: '#888', fontSize: 10 }} tickLine={false} axisLine={false} width={130} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
                 <Bar dataKey="count" name="Qtd" radius={[0, 3, 3, 0]}>
                   {byProduto.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
@@ -350,7 +219,7 @@ export default function RefundsDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
               <XAxis dataKey="label" tick={{ fill: '#888', fontSize: 10 }} tickLine={false} axisLine={false} />
               <YAxis tickFormatter={formatTick} tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
               <Bar dataKey="valor" name="Valor" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
             </BarChart>
           </ResponsiveContainer>

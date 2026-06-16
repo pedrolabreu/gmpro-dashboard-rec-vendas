@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { salesData as fallbackData } from '../data/salesData';
 import { SHEETS_CSV_URL } from '../config';
+import { splitCSVLine, parseVal, parseValSigned, parseIntVal } from '../utils/csv';
 
 // Colunas do CSV (mesma ordem do Sheets)
 // A=0  B=1          C=2           D=3            E=4               F=5        G=6         H=7
@@ -39,49 +40,6 @@ function parseCSV(text) {
       lucroTotal:           parseValSigned(cols[15]),
     };
   }).filter(Boolean);
-}
-
-function splitCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
-function parseVal(v) {
-  if (!v || v.trim() === '' || v.startsWith('#')) return 0;
-  const str = v.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
-  const n = parseFloat(str);
-  return isNaN(n) ? 0 : n;
-}
-
-// Igual a parseVal mas preserva valores negativos (ex: -R$ 6,23)
-function parseValSigned(v) {
-  if (!v || v.trim() === '' || v.startsWith('#')) return 0;
-  const negative = v.trim().startsWith('-');
-  const str = v.replace(/-/g, '').replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
-  const n = parseFloat(str);
-  if (isNaN(n)) return 0;
-  return negative ? -n : n;
-}
-
-function parseIntVal(v) {
-  if (!v || v.trim() === '' || v.startsWith('#')) return 0;
-  const n = parseInt(v.trim(), 10);
-  return isNaN(n) ? 0 : n;
 }
 
 export function useSalesData() {

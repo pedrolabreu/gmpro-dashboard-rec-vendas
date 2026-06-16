@@ -1,28 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { UTM_CSV_URL } from '../config';
-
-const AUTO_REFRESH_MS = 60 * 1000;
-
-function splitCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { inQuotes = !inQuotes; }
-    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
-    else { current += ch; }
-  }
-  result.push(current);
-  return result;
-}
-
-function parseVal(v) {
-  if (!v || v.trim() === '' || v.startsWith('#')) return 0;
-  const str = v.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
-  const n = parseFloat(str);
-  return isNaN(n) ? 0 : n;
-}
+import { splitCSVLine, parseVal } from '../utils/csv';
+import { useSheetData } from './useSheetData';
 
 // Detecta se coluna C (oculta no Sheets) está presente no CSV
 // Se cols[3] começa com R$ → layout 6 colunas (A B C_oculta D E F)
@@ -62,44 +40,7 @@ function parseCSV(text) {
 }
 
 export function useUtmData() {
-  const [data, setData]               = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [error, setError]             = useState(null);
-  const [updatedAt, setUpdatedAt]     = useState(null);
-  const intervalRef                   = useRef(null);
-
-  const fetchData = useCallback(async (isManual = false) => {
-    if (!UTM_CSV_URL) { setLoading(false); return; }
-
-    if (isManual) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-
-    try {
-      const url = `${UTM_CSV_URL}&t=${Date.now()}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
-      const text = await res.text();
-      const parsed = parseCSV(text);
-      if (!parsed.length) throw new Error('Nenhuma venda encontrada na planilha.');
-      setData(parsed);
-      setUpdatedAt(new Date().toISOString());
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData(false);
-    intervalRef.current = setInterval(() => fetchData(false), AUTO_REFRESH_MS);
-    return () => clearInterval(intervalRef.current);
-  }, [fetchData]);
-
-  const refetch = useCallback(() => fetchData(true), [fetchData]);
-
-  return { data, loading, refreshing, error, updatedAt, refetch };
+  return useSheetData(UTM_CSV_URL, parseCSV, {
+    emptyError: 'Nenhuma venda encontrada na planilha.',
+  });
 }
