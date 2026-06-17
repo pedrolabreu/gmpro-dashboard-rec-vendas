@@ -42,12 +42,15 @@ function parseCSV(text) {
   return { headers, rows };
 }
 
+const REFUND_INITIAL_DATA = { headers: [], rows: [] };
+const isRefundDataEmpty = (parsed) => parsed.rows.length === 0;
+
 export function useRefundData() {
   const { data, loading, refreshing, error, updatedAt, refetch } = useSheetData(
     REFUNDS_CSV_URL, parseCSV,
     {
-      initialData: { headers: [], rows: [] },
-      isEmpty: (parsed) => parsed.rows.length === 0,
+      initialData: REFUND_INITIAL_DATA,
+      isEmpty: isRefundDataEmpty,
       emptyError: 'Nenhum reembolso encontrado na planilha.',
     }
   );

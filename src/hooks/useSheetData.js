@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const AUTO_REFRESH_MS = 60 * 1000;
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 // Hook genérico de fetch+parse de uma aba do Google Sheets (CSV), com
 // auto-refresh periódico e refresh manual. `parse` recebe o texto do CSV e

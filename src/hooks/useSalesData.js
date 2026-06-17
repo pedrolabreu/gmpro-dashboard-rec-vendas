@@ -10,7 +10,7 @@ import { splitCSVLine, parseVal, parseValSigned, parseIntVal } from '../utils/cs
 // I=8               J=9                K=10              L=11              M=12            N=13           O=14           P=15
 // Qtd Envios Total  Qtd Vendas Período Conversão Período  Qtd Vendas Total  Conversão Total Qtd Reembolsos Lucro Período  Lucro Total
 
-const AUTO_REFRESH_MS = 60 * 1000; // 1 minuto
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 minutos
 
 function parseCSV(text) {
   const lines = text.trim().split('\n');
