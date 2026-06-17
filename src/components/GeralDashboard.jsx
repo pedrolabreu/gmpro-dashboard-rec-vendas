@@ -9,7 +9,7 @@ import { RefreshCw, AlertCircle, DollarSign, ShoppingCart, CreditCard } from 'lu
 import { parseDate, fromInputVal } from '../utils/date';
 import { fmt, maskEmail } from '../utils/format';
 import ChartTooltip from './ChartTooltip';
-import { ProductFilter, OperationFilter, PeriodFilter } from './FilterBar';
+import { ProductFilter, OperationFilter, OfertaFilter, PeriodFilter } from './FilterBar';
 
 const formatTooltipValue = (name, value) => (name === 'Valor' ? fmt(value) : value);
 
@@ -31,6 +31,7 @@ function GeralPanel({ source, emptyLabel }) {
 
   const [produtoFiltro, setProdutoFiltro]   = useState('Todos');
   const [operacaoFiltro, setOperacaoFiltro] = useState('Todos');
+  const [ofertaFiltro, setOfertaFiltro]     = useState('Todos');
   const { activePreset, startDate, endDate, applyPreset, handleDateChange, clear } = useDateRangeFilter();
 
   const produtos = useMemo(() => {
@@ -40,6 +41,11 @@ function GeralPanel({ source, emptyLabel }) {
 
   const operacoes = useMemo(() => {
     const set = new Set(allRows.map(r => r.operacao).filter(Boolean));
+    return set.size > 0 ? ['Todos', ...Array.from(set).sort()] : [];
+  }, [allRows]);
+
+  const ofertas = useMemo(() => {
+    const set = new Set(allRows.map(r => r.oferta).filter(Boolean));
     return set.size > 0 ? ['Todos', ...Array.from(set).sort()] : [];
   }, [allRows]);
 
@@ -54,9 +60,10 @@ function GeralPanel({ source, emptyLabel }) {
       if (to   && d > to)   return false;
       if (produtoFiltro  !== 'Todos' && r.produto  !== produtoFiltro)  return false;
       if (operacaoFiltro !== 'Todos' && r.operacao !== operacaoFiltro) return false;
+      if (ofertaFiltro   !== 'Todos' && r.oferta   !== ofertaFiltro)   return false;
       return true;
     });
-  }, [allRows, startDate, endDate, produtoFiltro, operacaoFiltro]);
+  }, [allRows, startDate, endDate, produtoFiltro, operacaoFiltro, ofertaFiltro]);
 
   const totalValor  = useMemo(() => rows.reduce((s, r) => s + r.valor, 0), [rows]);
   const byProduto   = useMemo(() => aggregate(rows, 'produto'),  [rows]);
@@ -117,6 +124,11 @@ function GeralPanel({ source, emptyLabel }) {
       {/* OPERATION FILTER */}
       {operacoes.length > 0 && (
         <OperationFilter operacoes={operacoes} operacaoFiltro={operacaoFiltro} onChange={setOperacaoFiltro} />
+      )}
+
+      {/* OFERTA FILTER */}
+      {ofertas.length > 0 && (
+        <OfertaFilter ofertas={ofertas} ofertaFiltro={ofertaFiltro} onChange={setOfertaFiltro} />
       )}
 
       {/* DATE FILTER */}

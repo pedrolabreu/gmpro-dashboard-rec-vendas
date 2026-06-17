@@ -1,4 +1,4 @@
-import { Calendar, Package, Workflow } from 'lucide-react';
+import { Calendar, Package, Workflow, Tag } from 'lucide-react';
 import { PRESETS, toInputVal } from '../utils/date';
 
 // Barra de filtro por opções (tags), genérica — base do ProductFilter e OperationFilter.
@@ -47,6 +47,19 @@ export function OperationFilter({ operacoes, operacaoFiltro, onChange }) {
       label="Operação"
       options={operacoes}
       value={operacaoFiltro}
+      onChange={onChange}
+    />
+  );
+}
+
+// Barra de filtro por oferta (coluna G da planilha SALES CONTROL), usada na estrutura Geral.
+export function OfertaFilter({ ofertas, ofertaFiltro, onChange }) {
+  return (
+    <TagFilter
+      icon={<Tag size={14} color="#cc0000" />}
+      label="Oferta"
+      options={ofertas}
+      value={ofertaFiltro}
       onChange={onChange}
     />
   );
