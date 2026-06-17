@@ -14,8 +14,8 @@ export const ENVIOS_CSV_URL =
 export const GERAL_CSV_URL =
   'https://docs.google.com/spreadsheets/d/1H7pagcA8a9uyerxOCEXu3XNs0GS1gXYC4raQqC8k5WI/export?format=csv&gid=66870694';
 
-// TODO: preencher com o gid da aba "Reembolsos" da planilha SALES CONTROL
-export const GERAL_REFUNDS_CSV_URL = '';
+export const GERAL_REFUNDS_CSV_URL =
+  'https://docs.google.com/spreadsheets/d/1H7pagcA8a9uyerxOCEXu3XNs0GS1gXYC4raQqC8k5WI/export?format=csv&gid=259158503';
 
 // Mapeamento produto → tipo de envio na aba Envios - Recuperação
 export const PRODUTO_TIPO_MAP = {
