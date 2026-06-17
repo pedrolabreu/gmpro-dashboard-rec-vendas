@@ -9,7 +9,7 @@ import { RefreshCw, AlertCircle, DollarSign, ShoppingCart, CreditCard } from 'lu
 import { parseDate, fromInputVal } from '../utils/date';
 import { fmt, maskEmail } from '../utils/format';
 import ChartTooltip from './ChartTooltip';
-import { ProductFilter, PeriodFilter } from './FilterBar';
+import { ProductFilter, OperationFilter, PeriodFilter } from './FilterBar';
 
 const formatTooltipValue = (name, value) => (name === 'Valor' ? fmt(value) : value);
 
@@ -29,11 +29,17 @@ function aggregate(rows, key) {
 function GeralPanel({ source, emptyLabel }) {
   const { data: allRows, loading, refreshing, error, updatedAt, refetch } = source;
 
-  const [produtoFiltro, setProdutoFiltro] = useState('Todos');
+  const [produtoFiltro, setProdutoFiltro]   = useState('Todos');
+  const [operacaoFiltro, setOperacaoFiltro] = useState('Todos');
   const { activePreset, startDate, endDate, applyPreset, handleDateChange, clear } = useDateRangeFilter();
 
   const produtos = useMemo(() => {
     const set = new Set(allRows.map(r => r.produto).filter(Boolean));
+    return set.size > 0 ? ['Todos', ...Array.from(set).sort()] : [];
+  }, [allRows]);
+
+  const operacoes = useMemo(() => {
+    const set = new Set(allRows.map(r => r.operacao).filter(Boolean));
     return set.size > 0 ? ['Todos', ...Array.from(set).sort()] : [];
   }, [allRows]);
 
@@ -46,16 +52,19 @@ function GeralPanel({ source, emptyLabel }) {
       if (!d) return false;
       if (from && d < from) return false;
       if (to   && d > to)   return false;
-      if (produtoFiltro !== 'Todos' && r.produto !== produtoFiltro) return false;
+      if (produtoFiltro  !== 'Todos' && r.produto  !== produtoFiltro)  return false;
+      if (operacaoFiltro !== 'Todos' && r.operacao !== operacaoFiltro) return false;
       return true;
     });
-  }, [allRows, startDate, endDate, produtoFiltro]);
+  }, [allRows, startDate, endDate, produtoFiltro, operacaoFiltro]);
 
-  const totalValor = useMemo(() => rows.reduce((s, r) => s + r.valor, 0), [rows]);
-  const byProduto  = useMemo(() => aggregate(rows, 'produto'), [rows]);
-  const byGateway  = useMemo(() => aggregate(rows, 'gateway'), [rows]);
-  const byOferta   = useMemo(() => aggregate(rows, 'oferta'),  [rows]);
-  const hasOferta  = useMemo(() => rows.some(r => r.oferta),  [rows]);
+  const totalValor  = useMemo(() => rows.reduce((s, r) => s + r.valor, 0), [rows]);
+  const byProduto   = useMemo(() => aggregate(rows, 'produto'),  [rows]);
+  const byGateway   = useMemo(() => aggregate(rows, 'gateway'),  [rows]);
+  const byOferta    = useMemo(() => aggregate(rows, 'oferta'),   [rows]);
+  const byOperacao  = useMemo(() => aggregate(rows, 'operacao'), [rows]);
+  const hasOferta   = useMemo(() => rows.some(r => r.oferta),    [rows]);
+  const hasOperacao = useMemo(() => rows.some(r => r.operacao),  [rows]);
 
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => (parseDate(b.data) || 0) - (parseDate(a.data) || 0)),
@@ -103,6 +112,11 @@ function GeralPanel({ source, emptyLabel }) {
       {/* PRODUCT FILTER */}
       {produtos.length > 0 && (
         <ProductFilter produtos={produtos} produtoFiltro={produtoFiltro} onChange={setProdutoFiltro} />
+      )}
+
+      {/* OPERATION FILTER */}
+      {operacoes.length > 0 && (
+        <OperationFilter operacoes={operacoes} operacaoFiltro={operacaoFiltro} onChange={setOperacaoFiltro} />
       )}
 
       {/* DATE FILTER */}
@@ -190,6 +204,21 @@ function GeralPanel({ source, emptyLabel }) {
             </ResponsiveContainer>
           </div>
         )}
+
+        {hasOperacao && (
+          <div className="chart-card full">
+            <div className="chart-title"><span className="chart-title-dot" />Por Operação</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={byOperacao} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
+                <XAxis dataKey="name" tick={{ fill: '#888', fontSize: 10 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fill: '#444', fontSize: 10 }} tickLine={false} axisLine={false} />
+                <Tooltip content={<ChartTooltip formatValue={formatTooltipValue} />} />
+                <Bar dataKey="count" name="Qtd" fill="#cc0000" radius={[3, 3, 0, 0]} opacity={0.85} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* TABELA */}
@@ -211,6 +240,7 @@ function GeralPanel({ source, emptyLabel }) {
                 <th>Produto</th>
                 <th>Oferta</th>
                 <th>Status</th>
+                <th>Operação</th>
                 <th>Valor</th>
               </tr>
             </thead>
@@ -224,6 +254,7 @@ function GeralPanel({ source, emptyLabel }) {
                   <td style={{ color: '#ccc', fontSize: 12 }}>{row.produto}</td>
                   <td style={{ color: '#888' }}>{row.oferta || '—'}</td>
                   <td style={{ color: '#888' }}>{row.status}</td>
+                  <td style={{ color: '#888' }}>{row.operacao || '—'}</td>
                   <td className="valor-positivo">{fmt(row.valor)}</td>
                 </tr>
               ))}

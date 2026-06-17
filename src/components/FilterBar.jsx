@@ -1,28 +1,54 @@
-import { Calendar, Package } from 'lucide-react';
+import { Calendar, Package, Workflow } from 'lucide-react';
 import { PRESETS, toInputVal } from '../utils/date';
 
-// Barra de filtro por produto, compartilhada pelas três abas do dashboard.
-export function ProductFilter({ produtos, produtoFiltro, onChange }) {
+// Barra de filtro por opções (tags), genérica — base do ProductFilter e OperationFilter.
+function TagFilter({ icon, label, options, value, onChange }) {
   return (
     <div className="date-filter" style={{ marginBottom: 10 }}>
       <div className="date-filter-left">
-        <Package size={14} color="#cc0000" />
-        <span className="date-filter-label">Produto:</span>
+        {icon}
+        <span className="date-filter-label">{label}:</span>
       </div>
       <div className="date-filter-right">
         <div className="preset-group">
-          {produtos.map(p => (
+          {options.map(o => (
             <button
-              key={p}
-              className={`preset-btn ${produtoFiltro === p ? 'active' : ''}`}
-              onClick={() => onChange(p)}
+              key={o}
+              className={`preset-btn ${value === o ? 'active' : ''}`}
+              onClick={() => onChange(o)}
             >
-              {p}
+              {o}
             </button>
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+// Barra de filtro por produto, compartilhada pelas três abas do dashboard.
+export function ProductFilter({ produtos, produtoFiltro, onChange }) {
+  return (
+    <TagFilter
+      icon={<Package size={14} color="#cc0000" />}
+      label="Produto"
+      options={produtos}
+      value={produtoFiltro}
+      onChange={onChange}
+    />
+  );
+}
+
+// Barra de filtro por operação (coluna K da planilha SALES CONTROL), usada na estrutura Geral.
+export function OperationFilter({ operacoes, operacaoFiltro, onChange }) {
+  return (
+    <TagFilter
+      icon={<Workflow size={14} color="#cc0000" />}
+      label="Operação"
+      options={operacoes}
+      value={operacaoFiltro}
+      onChange={onChange}
+    />
   );
 }
 
