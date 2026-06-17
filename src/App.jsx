@@ -10,6 +10,8 @@ import { parseDate, fromInputVal } from './utils/date';
 import { fmt, fmtROI, fmtPct, formatTick } from './utils/format';
 import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
+import GeralDashboard from './components/GeralDashboard';
+import StructureMenu from './components/StructureMenu';
 import ChartTooltip from './components/ChartTooltip';
 import { ProductFilter, PeriodFilter } from './components/FilterBar';
 import {
@@ -42,6 +44,7 @@ function App() {
   const { countEnvios, calcGasto, tiposUnicos } = useEnviosData();
   const { rows: allReembolsos } = useRefundData();
 
+  const [estrutura, setEstrutura]         = useState('recuperacao');
   const [activeTab, setActiveTab]         = useState('principal');
   const [produtoFiltro, setProdutoFiltro] = useState('Todos');
   const { activePreset, startDate, endDate, applyPreset, handleDateChange, clear } = useDateRangeFilter();
@@ -97,26 +100,26 @@ function App() {
     }).length;
   }, [allReembolsos, produtoFiltro, startDate, endDate]);
 
-  // ── Loading / empty states ──────────────────────────────────────────────────
+  // ── Conteúdo da estrutura "Recuperação" ─────────────────────────────────────
+
+  let recuperacaoContent;
 
   if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+    recuperacaoContent = (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 80 }}>
         <RefreshCw size={28} color="#cc0000" style={{ animation: 'spin 1s linear infinite' }} />
         <p style={{ color: '#555', fontSize: 14 }}>Carregando dados do Google Sheets...</p>
         <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
       </div>
     );
-  }
-
-  if (!allData.length) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+  } else if (!allData.length) {
+    recuperacaoContent = (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, padding: 80 }}>
         <AlertCircle size={28} color="#cc0000" />
         <p style={{ color: '#555', fontSize: 14 }}>Nenhum dado encontrado.</p>
       </div>
     );
-  }
+  } else {
 
   // ── KPIs baseados no período filtrado ──────────────────────────────────────
 
@@ -152,45 +155,8 @@ function App() {
     ? `${salesData[0].dia.slice(0, 5)} – ${last.dia}`
     : '—';
 
-  return (
-    <div className="dashboard">
-      {/* HEADER */}
-      <div className="header">
-        <div className="header-left">
-          <div className="header-logo">GM</div>
-          <div>
-            <div className="header-title">Dashboard Recuperação de Vendas</div>
-            <div className="header-subtitle">Acompanhamento diário de performance</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#444' }}>
-            <Database size={11} color={source === 'sheets' ? '#4ade80' : '#555'} />
-            {source === 'sheets'
-              ? <>Google Sheets · {updatedAt ? new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</>
-              : 'Dados locais'}
-            {error && <span style={{ color: '#cc0000', marginLeft: 4 }}>· {error}</span>}
-            {tiposUnicos.length > 0 && <span style={{ color: '#333', marginLeft: 4 }}>· envios: [{tiposUnicos.join(', ')}]</span>}
-          </div>
-
-          {/* Botão de refresh */}
-          <button
-            onClick={refetch}
-            disabled={refreshing}
-            className="refresh-btn"
-            title="Atualizar dados"
-          >
-            <RefreshCw
-              size={14}
-              style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}
-            />
-            {refreshing ? 'Atualizando...' : 'Atualizar'}
-          </button>
-        </div>
-      </div>
-
+  recuperacaoContent = (
+    <>
       {/* TABS */}
       <div className="tab-bar">
         <button className={`tab-btn ${activeTab === 'principal' ? 'active' : ''}`} onClick={() => setActiveTab('principal')}>
@@ -456,6 +422,62 @@ function App() {
         GM Pro · Dashboard Recuperação de Vendas · {new Date().toLocaleDateString('pt-BR')}
       </div>
       </>}
+    </>
+  );
+
+  }
+
+  return (
+    <div className="dashboard">
+      {/* HEADER */}
+      <div className="header">
+        <div className="header-left">
+          <div className="header-logo">GM</div>
+          <div>
+            <div className="header-title">
+              Dashboard {estrutura === 'geral' ? 'Geral' : 'Recuperação de Vendas'}
+            </div>
+            <div className="header-subtitle">
+              {estrutura === 'geral' ? 'Visão geral do negócio' : 'Acompanhamento diário de performance'}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {estrutura === 'recuperacao' && (
+            <>
+              {/* Status */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#444' }}>
+                <Database size={11} color={source === 'sheets' ? '#4ade80' : '#555'} />
+                {source === 'sheets'
+                  ? <>Google Sheets · {updatedAt ? new Date(updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}</>
+                  : 'Dados locais'}
+                {error && <span style={{ color: '#cc0000', marginLeft: 4 }}>· {error}</span>}
+                {tiposUnicos.length > 0 && <span style={{ color: '#333', marginLeft: 4 }}>· envios: [{tiposUnicos.join(', ')}]</span>}
+              </div>
+
+              {/* Botão de refresh */}
+              <button
+                onClick={refetch}
+                disabled={refreshing}
+                className="refresh-btn"
+                title="Atualizar dados"
+              >
+                <RefreshCw
+                  size={14}
+                  style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}
+                />
+                {refreshing ? 'Atualizando...' : 'Atualizar'}
+              </button>
+            </>
+          )}
+
+          {/* Seletor de estrutura */}
+          <StructureMenu value={estrutura} onChange={setEstrutura} />
+        </div>
+      </div>
+
+      {estrutura === 'geral' ? <GeralDashboard /> : recuperacaoContent}
     </div>
   );
 }
