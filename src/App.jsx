@@ -249,14 +249,14 @@ function App() {
 
       {/* CHARTS */}
       <div className="charts-grid">
-        <div className="chart-card full">
+        <div className="chart-card">
           <div className="chart-title"><span className="chart-title-dot" />Faturamento vs Gasto vs Lucro — Acumulado</div>
           <div className="chart-legend">
             <div className="legend-item"><div className="legend-dot" style={{ background: '#cc0000' }} />Faturamento Total</div>
             <div className="legend-item"><div className="legend-dot" style={{ background: '#555' }} />Gasto Total</div>
             <div className="legend-item"><div className="legend-dot" style={{ background: '#4ade80' }} />Lucro Total</div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
@@ -322,7 +322,7 @@ function App() {
           </ResponsiveContainer>
         </div>
 
-        <div className="chart-card full">
+        <div className="chart-card">
           <div className="chart-title"><span className="chart-title-dot" />Conversão do Período (%)</div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
@@ -336,7 +336,7 @@ function App() {
           </ResponsiveContainer>
         </div>
 
-        <div className="chart-card full">
+        <div className="chart-card">
           <div className="chart-title"><span className="chart-title-dot" />Faturamento do Período vs Gasto do Período</div>
           <div className="chart-legend">
             <div className="legend-item"><div className="legend-dot" style={{ background: '#cc0000' }} />Faturamento Período</div>
