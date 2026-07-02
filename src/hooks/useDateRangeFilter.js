@@ -19,6 +19,11 @@ export function useDateRangeFilter(initialPreset = 'Tudo') {
       const ontem = new Date(today); ontem.setDate(ontem.getDate() - 1);
       setStartDate(toInputVal(ontem)); setEndDate(toInputVal(ontem)); return;
     }
+    if (preset.type === 'currentMonth') {
+      const inicio = new Date(today.getFullYear(), today.getMonth(), 1);
+      const fim    = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setStartDate(toInputVal(inicio)); setEndDate(toInputVal(fim)); return;
+    }
     if (!preset.days) { setStartDate(''); setEndDate(''); return; }
     const from = new Date(today);
     from.setDate(from.getDate() - preset.days + 1);

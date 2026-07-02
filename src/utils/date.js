@@ -32,10 +32,11 @@ export function fromInputVal(str) {
 }
 
 export const PRESETS = [
-  { label: 'Hoje',  type: 'today' },
-  { label: 'Ontem', type: 'yesterday' },
-  { label: '7d',    days: 7 },
-  { label: '14d',   days: 14 },
-  { label: '30d',   days: 30 },
-  { label: 'Tudo',  days: null },
+  { label: 'Hoje',      type: 'today' },
+  { label: 'Ontem',     type: 'yesterday' },
+  { label: 'Mês atual', type: 'currentMonth' },
+  { label: '7d',        days: 7 },
+  { label: '14d',       days: 14 },
+  { label: '30d',       days: 30 },
+  { label: 'Tudo',      days: null },
 ];
