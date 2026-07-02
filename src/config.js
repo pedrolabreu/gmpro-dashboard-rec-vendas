@@ -28,3 +28,14 @@ export const TIPO_CUSTO_MAP = {
   'recuperacao':       1.11,
   'segunda_tentativa': 0.37,
 };
+
+// Metas de faturamento do mês (Recuperação de Vendas)
+// Ordem crescente: Mínima → Regular → Super
+export const METAS = [
+  { key: 'minima',  label: 'Mínima',  valor: 33702.02, cor: '#f59e0b' },
+  { key: 'regular', label: 'Regular', valor: 42127.52, cor: '#3b82f6' },
+  { key: 'super',   label: 'Super',   valor: 59474.15, cor: '#4ade80' },
+];
+
+// Mês de referência para o acompanhamento de metas (0 = Janeiro … 6 = Julho)
+export const META_MES = { ano: 2026, mes: 6, label: 'Julho' };

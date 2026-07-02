@@ -11,6 +11,7 @@ import { fmt, fmtROI, fmtPct, formatTick } from './utils/format';
 import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
 import GeralDashboard from './components/GeralDashboard';
+import MetaProgress from './components/MetaProgress';
 import StructureMenu from './components/StructureMenu';
 import ChartTooltip from './components/ChartTooltip';
 import { ProductFilter, PeriodFilter } from './components/FilterBar';
@@ -243,6 +244,8 @@ function App() {
         </div>
       </div>
 
+      {/* METAS DO MÊS */}
+      <MetaProgress data={allData} />
 
       {/* CHARTS */}
       <div className="charts-grid">

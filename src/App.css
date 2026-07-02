@@ -628,4 +628,112 @@ tbody td.envios-alto {
     align-items: flex-start;
     gap: 12px;
   }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── METAS DO MÊS ─────────────────────────────────────────────────────────── */
+.meta-section {
+  margin-bottom: 28px;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.meta-card {
+  background: #111;
+  border: 1px solid #1e1e1e;
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: border-color 0.2s;
+}
+
+.meta-card.meta-batida {
+  border-color: #234d2e;
+  background: linear-gradient(135deg, #111 60%, #0d1a10);
+}
+
+.meta-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.meta-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.meta-card-pct {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.meta-card-alvo {
+  font-size: 13px;
+  color: #888;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.meta-bar-track {
+  height: 10px;
+  background: #1a1a1a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.meta-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease;
+  min-width: 2px;
+}
+
+.meta-card-foot {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #555;
+  font-weight: 600;
+}
+
+.meta-realizado-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  border-radius: 12px;
+  padding: 14px 20px;
+}
+
+.meta-realizado-label {
+  font-size: 11px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+.meta-realizado-valor {
+  font-size: 24px;
+  font-weight: 800;
+  color: #cc0000;
+  letter-spacing: -0.5px;
+}
+
+.meta-realizado-sub {
+  font-size: 11px;
+  color: #444;
+  margin-left: auto;
 }
