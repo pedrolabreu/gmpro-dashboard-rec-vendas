@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import {
-  ComposedChart, Area, Line, ReferenceLine,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label,
+  ComposedChart, Area, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Target } from 'lucide-react';
 import { METAS, META_MES } from '../config';
@@ -13,28 +13,45 @@ const fmtMeta = (name, value) => fmt(value);
 
 // Componente de acompanhamento de metas do mês (Mínima / Regular / Super)
 export default function MetaProgress({ data }) {
-  // Filtra somente os dias do mês/ano de referência e acumula o faturamento
+  // Monta uma linha por dia do mês: metas rateadas proporcionalmente (ritmo
+  // diário) como diagonais + faturamento realizado acumulado.
   const { realizado, chartData, diasComDado } = useMemo(() => {
-    const doMes = data
-      .filter(row => {
-        const d = parseDate(row.dia);
-        return d && d.getFullYear() === META_MES.ano && d.getMonth() === META_MES.mes;
-      })
-      .sort((a, b) => parseDate(a.dia) - parseDate(b.dia));
+    const doMes = data.filter(row => {
+      const d = parseDate(row.dia);
+      return d && d.getFullYear() === META_MES.ano && d.getMonth() === META_MES.mes;
+    });
 
-    const chart = doMes.reduce((arr, row) => {
-      const diario = row.faturamentoPeriodo || 0;
-      const anterior = arr.length ? arr[arr.length - 1].acumulado : 0;
-      arr.push({
-        label: row.dia.slice(0, 5),
-        diario,
-        acumulado: anterior + diario,
+    // Faturamento por dia do mês + último dia com registro
+    const fatByDay = new Map();
+    let lastDataDay = 0;
+    doMes.forEach(row => {
+      const dia = parseDate(row.dia).getDate();
+      fatByDay.set(dia, (fatByDay.get(dia) || 0) + (row.faturamentoPeriodo || 0));
+      if (dia > lastDataDay) lastDataDay = dia;
+    });
+
+    const diasNoMes = new Date(META_MES.ano, META_MES.mes + 1, 0).getDate();
+    const mm = String(META_MES.mes + 1).padStart(2, '0');
+
+    let acumulado = 0;
+    const chart = [];
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      const temFat = fatByDay.has(dia);
+      if (temFat) acumulado += fatByDay.get(dia);
+
+      const linha = {
+        label: `${String(dia).padStart(2, '0')}/${mm}`,
+        // realizado só desenha até o último dia com registro
+        acumulado: dia <= lastDataDay ? acumulado : null,
+      };
+      // meta proporcional: valor cheio × (dia ÷ dias do mês)
+      METAS.forEach(meta => {
+        linha[`meta_${meta.key}`] = (meta.valor * dia) / diasNoMes;
       });
-      return arr;
-    }, []);
+      chart.push(linha);
+    }
 
-    const total = chart.length ? chart[chart.length - 1].acumulado : 0;
-    return { realizado: total, chartData: chart, diasComDado: doMes.length };
+    return { realizado: acumulado, chartData: chart, diasComDado: doMes.length };
   }, [data]);
 
   const maiorMeta = METAS[METAS.length - 1].valor;
@@ -122,22 +139,17 @@ export default function MetaProgress({ data }) {
             />
             <Tooltip content={<ChartTooltip formatValue={fmtMeta} />} />
             {METAS.map(meta => (
-              <ReferenceLine
+              <Line
                 key={meta.key}
-                y={meta.valor}
+                type="linear"
+                dataKey={`meta_${meta.key}`}
+                name={meta.label}
                 stroke={meta.cor}
                 strokeDasharray="5 4"
                 strokeWidth={1.5}
-                ifOverflow="extendDomain"
-              >
-                <Label
-                  value={meta.label}
-                  position="right"
-                  fill={meta.cor}
-                  fontSize={10}
-                  fontWeight={600}
-                />
-              </ReferenceLine>
+                dot={false}
+                connectNulls
+              />
             ))}
             <Area
               type="monotone"
@@ -147,15 +159,7 @@ export default function MetaProgress({ data }) {
               fill="url(#metaRealGrad)"
               strokeWidth={2.5}
               dot={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="diario"
-              name="Faturamento do dia"
-              stroke="#555"
-              strokeWidth={1.5}
-              dot={false}
-              strokeDasharray="4 2"
+              connectNulls={false}
             />
           </ComposedChart>
         </ResponsiveContainer>
