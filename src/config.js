@@ -32,9 +32,9 @@ export const TIPO_CUSTO_MAP = {
 // Metas de faturamento do mês (Recuperação de Vendas)
 // Ordem crescente: Mínima → Regular → Super
 export const METAS = [
-  { key: 'minima',  label: 'Mínima',  valor: 33702.02, cor: '#f59e0b' },
-  { key: 'regular', label: 'Regular', valor: 42127.52, cor: '#3b82f6' },
-  { key: 'super',   label: 'Super',   valor: 59474.15, cor: '#4ade80' },
+  { key: 'minima',  label: 'Mínima',  valor: 33915.00,  cor: '#f59e0b' },
+  { key: 'regular', label: 'Regular', valor: 59500.00,  cor: '#3b82f6' },
+  { key: 'super',   label: 'Super',   valor: 135000.00, cor: '#4ade80' },
 ];
 
 // Mês de referência para o acompanhamento de metas (0 = Janeiro … 6 = Julho)
