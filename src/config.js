@@ -19,9 +19,23 @@ export const GERAL_REFUNDS_CSV_URL =
 
 // Mapeamento produto → tipo de envio na aba Envios - Recuperação
 export const PRODUTO_TIPO_MAP = {
-  'Strong Base - Segunda Força': 'recuperacao',
-  'Strong Pump': 'segunda_tentativa',
+  'Strong Base - Segunda Força - REC': 'recuperacao',
+  'Strong Base - Segunda Força':       'recuperacao',
+  'Strong Pump - REC':                 'segunda_tentativa',
+  'Strong Pump':                       'segunda_tentativa',
 };
+
+// Resolve o tipo de envio a partir do nome do produto.
+// Tolerante a sufixos como "- REC" e a novas variações de nome: se não houver
+// correspondência exata no mapa, cai para uma checagem por palavra-chave.
+export function resolveTipoEnvio(produto) {
+  if (!produto) return null;
+  if (PRODUTO_TIPO_MAP[produto]) return PRODUTO_TIPO_MAP[produto];
+  const p = produto.toLowerCase();
+  if (p.includes('strong base')) return 'recuperacao';
+  if (p.includes('strong pump')) return 'segunda_tentativa';
+  return null;
+}
 
 // Custo por envio conforme o tipo
 export const TIPO_CUSTO_MAP = {

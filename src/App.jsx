@@ -5,7 +5,7 @@ import { useUtmData } from './hooks/useUtmData';
 import { useEnviosData } from './hooks/useEnviosData';
 import { useRefundData } from './hooks/useRefundData';
 import { useDateRangeFilter } from './hooks/useDateRangeFilter';
-import { PRODUTO_TIPO_MAP } from './config';
+import { resolveTipoEnvio } from './config';
 import { parseDate, fromInputVal } from './utils/date';
 import { fmt, fmtROI, fmtPct, formatTick } from './utils/format';
 import UtmDashboard from './components/UtmDashboard';
@@ -131,7 +131,7 @@ function App() {
   const filtrando = produtoFiltro !== 'Todos';
 
   // Envios filtrados por produto (via aba Envios - Recuperação)
-  const tipoEnvio   = filtrando ? (PRODUTO_TIPO_MAP[produtoFiltro] ?? null) : null;
+  const tipoEnvio   = filtrando ? resolveTipoEnvio(produtoFiltro) : null;
   const from        = startDate ? fromInputVal(startDate) : null;
   const to          = endDate   ? fromInputVal(endDate)   : null;
   const totalEnvios = filtrando
