@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import {
-  ComposedChart, Area, Line,
+  ComposedChart, Area, Line, ReferenceLine, Label,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Target } from 'lucide-react';
@@ -15,7 +15,7 @@ const fmtMeta = (name, value) => fmt(value);
 export default function MetaProgress({ data }) {
   // Monta uma linha por dia do mês: metas rateadas proporcionalmente (ritmo
   // diário) como diagonais + faturamento realizado acumulado.
-  const { realizado, chartData, diasComDado } = useMemo(() => {
+  const { realizado, chartData, diasComDado, diasNoMes, diaRef, hojeLabel } = useMemo(() => {
     const doMes = data.filter(row => {
       const d = parseDate(row.dia);
       return d && d.getFullYear() === META_MES.ano && d.getMonth() === META_MES.mes;
@@ -51,10 +51,23 @@ export default function MetaProgress({ data }) {
       chart.push(linha);
     }
 
-    return { realizado: acumulado, chartData: chart, diasComDado: doMes.length };
+    // Dia de referência dentro do mês: hoje (se estivermos no mês), 0 se ainda
+    // não começou, ou o mês inteiro se já terminou.
+    const hoje = new Date();
+    const primeiro = new Date(META_MES.ano, META_MES.mes, 1);
+    const ultimo = new Date(META_MES.ano, META_MES.mes + 1, 0);
+    let diaRef;
+    if (hoje < primeiro) diaRef = 0;
+    else if (hoje > ultimo) diaRef = diasNoMes;
+    else diaRef = hoje.getDate();
+
+    const hojeLabel = diaRef > 0 ? `${String(diaRef).padStart(2, '0')}/${mm}` : null;
+
+    return { realizado: acumulado, chartData: chart, diasComDado: doMes.length, diasNoMes, diaRef, hojeLabel };
   }, [data]);
 
   const maiorMeta = METAS[METAS.length - 1].valor;
+  const pacePct = diasNoMes > 0 ? Math.min((diaRef / diasNoMes) * 100, 100) : 0;
 
   return (
     <div className="meta-section">
@@ -71,6 +84,10 @@ export default function MetaProgress({ data }) {
           const pctClamp = Math.min(pct, 100);
           const batida = realizado >= meta.valor;
           const falta = Math.max(meta.valor - realizado, 0);
+          // Ritmo: meta proporcional ao dia de hoje e diferença vs realizado
+          const metaHoje = (meta.valor * diaRef) / diasNoMes;
+          const diff = realizado - metaHoje;
+          const adiantado = diff >= 0;
           return (
             <div key={meta.key} className={`meta-card ${batida ? 'meta-batida' : ''}`}>
               <div className="meta-card-head">
@@ -87,11 +104,26 @@ export default function MetaProgress({ data }) {
                   className="meta-bar-fill"
                   style={{ width: `${pctClamp}%`, background: meta.cor }}
                 />
+                {/* Marcador de ritmo: onde deveríamos estar hoje */}
+                <div
+                  className="meta-bar-pace"
+                  style={{ left: `${pacePct}%` }}
+                  title={`Ritmo esperado até hoje: ${fmt(metaHoje)}`}
+                />
               </div>
               <div className="meta-card-foot">
                 {batida
                   ? <span style={{ color: meta.cor }}>✓ Meta batida</span>
                   : <span>Faltam {fmt(falta)}</span>}
+              </div>
+              {/* LINHA DE RITMO (PACE) */}
+              <div className="meta-pace-row">
+                <span className="meta-pace-alvo">
+                  Ritmo dia {diaRef}: <strong>{fmt(metaHoje)}</strong>
+                </span>
+                <span className={`meta-pace-diff ${adiantado ? 'ahead' : 'behind'}`}>
+                  {adiantado ? '▲' : '▼'} {fmt(Math.abs(diff))}
+                </span>
               </div>
             </div>
           );
@@ -138,6 +170,11 @@ export default function MetaProgress({ data }) {
               domain={[0, Math.max(maiorMeta * 1.05, realizado * 1.05)]}
             />
             <Tooltip content={<ChartTooltip formatValue={fmtMeta} />} />
+            {hojeLabel && (
+              <ReferenceLine x={hojeLabel} stroke="#fff" strokeDasharray="2 3" strokeOpacity={0.4}>
+                <Label value="hoje" position="top" fill="#aaa" fontSize={10} fontWeight={600} />
+              </ReferenceLine>
+            )}
             {METAS.map(meta => (
               <Line
                 key={meta.key}

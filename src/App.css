@@ -687,6 +687,7 @@ tbody td.envios-alto {
 }
 
 .meta-bar-track {
+  position: relative;
   height: 10px;
   background: #1a1a1a;
   border-radius: 6px;
@@ -698,6 +699,42 @@ tbody td.envios-alto {
   border-radius: 6px;
   transition: width 0.6s ease;
   min-width: 2px;
+}
+
+/* Marcador de ritmo (pace): onde deveríamos estar hoje */
+.meta-bar-pace {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: #fff;
+  transform: translateX(-1px);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+}
+
+.meta-pace-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #1a1a1a;
+  font-size: 11px;
+  color: #666;
+  font-weight: 600;
+}
+
+.meta-pace-alvo strong {
+  color: #bbb;
+}
+
+.meta-pace-diff.ahead {
+  color: #4ade80;
+}
+
+.meta-pace-diff.behind {
+  color: #cc0000;
 }
 
 .meta-card-foot {
