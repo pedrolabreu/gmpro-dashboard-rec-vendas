@@ -45,11 +45,51 @@ export const TIPO_CUSTO_MAP = {
 
 // Metas de faturamento do mês (Recuperação de Vendas)
 // Ordem crescente: Mínima → Regular → Super
-export const METAS = [
-  { key: 'minima',  label: 'Mínima',  valor: 33915.00,  cor: '#f59e0b' },
-  { key: 'regular', label: 'Regular', valor: 59500.00,  cor: '#3b82f6' },
-  { key: 'super',   label: 'Super',   valor: 135000.00, cor: '#4ade80' },
+export const MESES_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-// Mês de referência para o acompanhamento de metas (0 = Janeiro … 6 = Julho)
-export const META_MES = { ano: 2026, mes: 6, label: 'Julho' };
+// Metas por mês (chave "AAAA-MM"). Para incluir um novo mês, basta adicionar
+// uma nova entrada aqui com os três valores — o dashboard segue o mês atual
+// automaticamente.
+export const METAS_POR_MES = {
+  '2026-07': [
+    { key: 'minima',  label: 'Mínima',  valor: 33915.00,  cor: '#f59e0b' },
+    { key: 'regular', label: 'Regular', valor: 59500.00,  cor: '#3b82f6' },
+    { key: 'super',   label: 'Super',   valor: 135000.00, cor: '#4ade80' },
+  ],
+  '2026-08': [
+    { key: 'minima',  label: 'Mínima',  valor: 55250.00, cor: '#f59e0b' },
+    { key: 'regular', label: 'Regular', valor: 68000.00, cor: '#3b82f6' },
+    { key: 'super',   label: 'Super',   valor: 89250.00, cor: '#4ade80' },
+  ],
+};
+
+const mesKey = (ano, mes) => `${ano}-${String(mes + 1).padStart(2, '0')}`;
+
+// Resolve o mês de meta a exibir: usa o mês atual se houver metas cadastradas;
+// senão, cai para o mês cadastrado mais recente que já começou.
+export function resolveMetaMes(hoje = new Date()) {
+  const keyAtual = mesKey(hoje.getFullYear(), hoje.getMonth());
+  let ano = hoje.getFullYear();
+  let mes = hoje.getMonth();
+
+  if (!METAS_POR_MES[keyAtual]) {
+    const keys = Object.keys(METAS_POR_MES).sort();
+    const anteriores = keys.filter(k => k <= keyAtual);
+    const escolhida = anteriores.length ? anteriores[anteriores.length - 1] : keys[keys.length - 1];
+    if (escolhida) {
+      const [a, m] = escolhida.split('-');
+      ano = +a;
+      mes = +m - 1;
+    }
+  }
+
+  return {
+    ano,
+    mes,
+    label: MESES_PT[mes],
+    metas: METAS_POR_MES[mesKey(ano, mes)] || [],
+  };
+}

@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Target } from 'lucide-react';
-import { METAS, META_MES } from '../config';
+import { resolveMetaMes } from '../config';
 import { parseDate } from '../utils/date';
 import { fmt, formatTick } from '../utils/format';
 import ChartTooltip from './ChartTooltip';
@@ -15,10 +15,13 @@ const fmtMeta = (name, value) => fmt(value);
 export default function MetaProgress({ data }) {
   // Monta uma linha por dia do mês: metas rateadas proporcionalmente (ritmo
   // diário) como diagonais + faturamento realizado acumulado.
-  const { realizado, chartData, diasComDado, diasNoMes, diaRef, hojeLabel } = useMemo(() => {
+  const { metas, mesLabel, realizado, chartData, diasComDado, diasNoMes, diaRef, hojeLabel } = useMemo(() => {
+    // Segue o mês atual automaticamente (com metas cadastradas no config)
+    const { ano, mes, label, metas } = resolveMetaMes();
+
     const doMes = data.filter(row => {
       const d = parseDate(row.dia);
-      return d && d.getFullYear() === META_MES.ano && d.getMonth() === META_MES.mes;
+      return d && d.getFullYear() === ano && d.getMonth() === mes;
     });
 
     // Faturamento por dia do mês + último dia com registro
@@ -30,8 +33,8 @@ export default function MetaProgress({ data }) {
       if (dia > lastDataDay) lastDataDay = dia;
     });
 
-    const diasNoMes = new Date(META_MES.ano, META_MES.mes + 1, 0).getDate();
-    const mm = String(META_MES.mes + 1).padStart(2, '0');
+    const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+    const mm = String(mes + 1).padStart(2, '0');
 
     let acumulado = 0;
     const chart = [];
@@ -45,7 +48,7 @@ export default function MetaProgress({ data }) {
         acumulado: dia <= lastDataDay ? acumulado : null,
       };
       // meta proporcional: valor cheio × (dia ÷ dias do mês)
-      METAS.forEach(meta => {
+      metas.forEach(meta => {
         linha[`meta_${meta.key}`] = (meta.valor * dia) / diasNoMes;
       });
       chart.push(linha);
@@ -54,8 +57,8 @@ export default function MetaProgress({ data }) {
     // Dia de referência dentro do mês: hoje (se estivermos no mês), 0 se ainda
     // não começou, ou o mês inteiro se já terminou.
     const hoje = new Date();
-    const primeiro = new Date(META_MES.ano, META_MES.mes, 1);
-    const ultimo = new Date(META_MES.ano, META_MES.mes + 1, 0);
+    const primeiro = new Date(ano, mes, 1);
+    const ultimo = new Date(ano, mes + 1, 0);
     let diaRef;
     if (hoje < primeiro) diaRef = 0;
     else if (hoje > ultimo) diaRef = diasNoMes;
@@ -63,10 +66,10 @@ export default function MetaProgress({ data }) {
 
     const hojeLabel = diaRef > 0 ? `${String(diaRef).padStart(2, '0')}/${mm}` : null;
 
-    return { realizado: acumulado, chartData: chart, diasComDado: doMes.length, diasNoMes, diaRef, hojeLabel };
+    return { metas, mesLabel: label, realizado: acumulado, chartData: chart, diasComDado: doMes.length, diasNoMes, diaRef, hojeLabel };
   }, [data]);
 
-  const maiorMeta = METAS[METAS.length - 1].valor;
+  const maiorMeta = metas.length ? metas[metas.length - 1].valor : 0;
   const pacePct = diasNoMes > 0 ? Math.min((diaRef / diasNoMes) * 100, 100) : 0;
 
   return (
@@ -74,12 +77,12 @@ export default function MetaProgress({ data }) {
       <div className="chart-title" style={{ marginBottom: 18 }}>
         <span className="chart-title-dot" />
         <Target size={14} style={{ color: '#cc0000' }} />
-        Metas de {META_MES.label} — Faturamento
+        Metas de {mesLabel} — Faturamento
       </div>
 
       {/* CARDS DE META COM BARRA DE % */}
       <div className="meta-grid">
-        {METAS.map(meta => {
+        {metas.map(meta => {
           const pct = meta.valor > 0 ? (realizado / meta.valor) * 100 : 0;
           const pctClamp = Math.min(pct, 100);
           const batida = realizado >= meta.valor;
@@ -146,7 +149,7 @@ export default function MetaProgress({ data }) {
         </div>
         <div className="chart-legend">
           <div className="legend-item"><div className="legend-dot" style={{ background: '#cc0000' }} />Realizado acumulado</div>
-          {METAS.map(m => (
+          {metas.map(m => (
             <div className="legend-item" key={m.key}>
               <div className="legend-dot" style={{ background: m.cor }} />{m.label}
             </div>
@@ -175,7 +178,7 @@ export default function MetaProgress({ data }) {
                 <Label value="hoje" position="top" fill="#aaa" fontSize={10} fontWeight={600} />
               </ReferenceLine>
             )}
-            {METAS.map(meta => (
+            {metas.map(meta => (
               <Line
                 key={meta.key}
                 type="linear"
