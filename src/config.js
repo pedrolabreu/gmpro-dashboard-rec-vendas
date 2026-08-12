@@ -43,42 +43,48 @@ export const TIPO_CUSTO_MAP = {
   'segunda_tentativa': 0.37,
 };
 
-// Canais de recuperação (segmentação do tipo). As chaves usam a forma
-// normalizada (minúsculo, separadores como "_"). Rótulo e cor de cada canal;
-// canais novos que aparecerem na planilha entram automaticamente no funil com
-// um rótulo derivado do próprio nome.
+// Funil consolidado em 4 canais fixos. "Recuperação" é o catch-all: tudo que
+// não for Segunda Tentativa, Pop-up Aurélio ou Pop-up MyAds.
+export const BUCKETS = [
+  'recuperacao',
+  'segunda_tentativa',
+  'recuperacao_popup_aurelio',
+  'recuperacao_popup_myads',
+];
+
 export const CANAIS_LABEL = {
-  'recuperacao':                'Recuperação',
-  'segunda_tentativa':          'Segunda Tentativa',
-  'recuperacao_popup_myads':    'Pop-up MyAds',
-  'recuperacao_popup_aurelio':  'Pop-up Aurélio',
-  'recuperacao_popup_smd':      'Pop-up SMD',
+  'recuperacao':               'Recuperação',
+  'segunda_tentativa':         'Segunda Tentativa',
+  'recuperacao_popup_aurelio': 'Pop-up Aurélio',
+  'recuperacao_popup_myads':   'Pop-up MyAds',
 };
 
 export const CANAIS_COR = {
-  'recuperacao':                '#cc0000',
-  'segunda_tentativa':          '#f59e0b',
-  'recuperacao_popup_myads':    '#3b82f6',
-  'recuperacao_popup_aurelio':  '#a855f7',
-  'recuperacao_popup_smd':      '#4ade80',
+  'recuperacao':               '#cc0000',
+  'segunda_tentativa':         '#f59e0b',
+  'recuperacao_popup_aurelio': '#a855f7',
+  'recuperacao_popup_myads':   '#3b82f6',
 };
 
-// Paleta de fallback para canais não mapeados acima
-export const CANAIS_COR_FALLBACK = ['#22d3ee', '#eab308', '#ec4899', '#14b8a6', '#f97316'];
-
-// Normaliza um tipo/canal: minúsculo, sem acento de espaços, separadores -> "_"
+// Normaliza um tipo/canal: minúsculo, separadores (- e espaço) -> "_"
 export function normalizeCanal(s) {
   return (s ?? '').trim().toLowerCase().replace(/[-\s]+/g, '_');
 }
 
-// Rótulo amigável de um canal normalizado (usa o mapa ou deriva do nome)
-export function canalLabel(tipo) {
-  if (CANAIS_LABEL[tipo]) return CANAIS_LABEL[tipo];
-  if (!tipo) return '(sem tipo)';
-  return tipo
-    .split('_')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+// Consolida qualquer tipo em um dos 4 buckets (por palavra-chave, robusto a
+// variações de nome). Retorna null se vier vazio.
+export function bucketCanal(tipo) {
+  const t = normalizeCanal(tipo);
+  if (!t) return null;
+  if (t.includes('aurelio')) return 'recuperacao_popup_aurelio';
+  if (t.includes('myads')) return 'recuperacao_popup_myads';
+  if (t.includes('segunda') || t.includes('tentativa')) return 'segunda_tentativa';
+  return 'recuperacao'; // catch-all
+}
+
+// Rótulo amigável de um bucket
+export function canalLabel(bucket) {
+  return CANAIS_LABEL[bucket] || bucket;
 }
 
 // Metas de faturamento do mês (Recuperação de Vendas)

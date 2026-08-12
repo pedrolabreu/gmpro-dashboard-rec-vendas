@@ -16,9 +16,12 @@ function parseCSV(text) {
     const cols = splitCSVLine(line);
     const data = cols[0]?.trim() ?? '';
     if (!data) return null;
+    // Colunas: A=Data  B=Email  C=Telefone  D=Registro  E=Tipo
     return {
       data,
-      tipo: normalizeTipo(cols[4]), // col E normalizada
+      email:    (cols[1] ?? '').trim().toLowerCase(),
+      telefone: (cols[2] ?? '').replace(/\D/g, ''),
+      tipo:     normalizeTipo(cols[4]), // col E normalizada
     };
   }).filter(Boolean);
 }

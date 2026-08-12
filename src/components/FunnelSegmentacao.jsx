@@ -3,16 +3,18 @@ import { Filter } from 'lucide-react';
 import { parseDate } from '../utils/date';
 import { fmtPct } from '../utils/format';
 import {
-  CANAIS_COR, CANAIS_COR_FALLBACK, canalLabel, normalizeCanal,
+  BUCKETS, CANAIS_COR, bucketCanal, canalLabel, normalizeCanal,
 } from '../config';
 
-// Funil por segmentação de canal:
+// Funil por segmentação de canal (4 buckets fixos):
 //   Topo  = envios (quantas pessoas entraram com aquele tipo)
 //   Fundo = vendas atribuídas àquele canal
-// A segmentação de vendas é detectada automaticamente entre utm_medium e
-// utm_term (o campo que mais casar com os tipos da planilha de Envios).
+// A venda é atribuída ao canal cruzando o e-mail da venda com o e-mail do
+// envio (fonte mais confiável). Se o cruzamento por e-mail render pouco, cai
+// para o campo de UTM (medium/term) que mais casar com os tipos de envio.
+// "Recuperação" é o catch-all (tudo que não for os outros 3).
 export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) {
-  const { canais, campoVendas } = useMemo(() => {
+  const { canais, metodo, totalEnvios, totalVendas, maxEnvios } = useMemo(() => {
     const inRange = (dataStr) => {
       const d = parseDate(dataStr);
       if (!d) return false;
@@ -21,59 +23,87 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
       return true;
     };
 
-    // Envios agrupados por tipo (topo do funil)
-    const enviosPorTipo = {};
+    // Envios agrupados por bucket (topo do funil)
+    const enviosPorBucket = {};
+    // Tipos de envio conhecidos (para validar o fallback por UTM)
+    const tiposEnvio = new Set();
+    // Mapa e-mail → tipo do envio mais recente (independe do período)
+    const emailToTipo = new Map();
+    const emailToData = new Map();
+
     enviosData.forEach(r => {
-      if (!inRange(r.data)) return;
       const t = normalizeCanal(r.tipo);
-      if (!t) return;
-      enviosPorTipo[t] = (enviosPorTipo[t] || 0) + 1;
+      if (t) tiposEnvio.add(t);
+
+      if (inRange(r.data)) {
+        const b = bucketCanal(r.tipo);
+        if (b) enviosPorBucket[b] = (enviosPorBucket[b] || 0) + 1;
+      }
+
+      const email = (r.email ?? '').trim().toLowerCase();
+      if (email && t) {
+        const d = parseDate(r.data);
+        const prev = emailToData.get(email);
+        if (!prev || (d && d >= prev)) {
+          emailToData.set(email, d);
+          emailToTipo.set(email, t);
+        }
+      }
     });
 
     // Vendas no período
     const vendasPeriodo = vendasData.filter(r => inRange(r.data));
-    const tiposConhecidos = new Set(Object.keys(enviosPorTipo));
 
-    // Detecta qual campo de UTM carrega a segmentação (o que mais casa)
-    const matches = (campo) =>
-      vendasPeriodo.reduce((n, r) => tiposConhecidos.has(normalizeCanal(r[campo])) ? n + 1 : n, 0);
-    const nMedium = matches('utmMedium');
-    const nTerm = matches('utmTerm');
-    const campoVendas = nTerm > nMedium ? 'utmTerm' : 'utmMedium';
+    // Candidatos de atribuição do canal de uma venda → tipo de envio
+    const tipoPorEmail = (r) => emailToTipo.get((r.email ?? '').trim().toLowerCase());
+    const tipoPorCampo = (campo) => (r) => {
+      const t = normalizeCanal(r[campo]);
+      return tiposEnvio.has(t) ? t : undefined;
+    };
+    const candidatos = [
+      { metodo: 'e-mail',     resolver: tipoPorEmail },
+      { metodo: 'utm_medium', resolver: tipoPorCampo('utmMedium') },
+      { metodo: 'utm_term',   resolver: tipoPorCampo('utmTerm') },
+    ];
+    // Escolhe o método que atribui mais vendas a um canal conhecido
+    const pontuar = (resolver) => vendasPeriodo.reduce((n, r) => (resolver(r) ? n + 1 : n), 0);
+    const escolhido = candidatos
+      .map(c => ({ ...c, pontos: pontuar(c.resolver) }))
+      .sort((a, b) => b.pontos - a.pontos)[0];
 
-    // Vendas agrupadas pelo canal detectado (fundo do funil)
-    const vendasPorTipo = {};
+    // Vendas agrupadas por bucket (fundo do funil)
+    const vendasPorBucket = {};
     vendasPeriodo.forEach(r => {
-      const t = normalizeCanal(r[campoVendas]);
-      if (!t) return;
-      vendasPorTipo[t] = (vendasPorTipo[t] || 0) + 1;
+      const tipo = escolhido.resolver(r);
+      if (!tipo) return;
+      const b = bucketCanal(tipo);
+      if (b) vendasPorBucket[b] = (vendasPorBucket[b] || 0) + 1;
     });
 
-    // Une todos os tipos vistos (envios ∪ vendas), ordena por envios desc
-    const todos = new Set([...Object.keys(enviosPorTipo), ...Object.keys(vendasPorTipo)]);
-    let idxFallback = 0;
-    const canais = [...todos].map(tipo => {
-      const cor = CANAIS_COR[tipo] || CANAIS_COR_FALLBACK[idxFallback++ % CANAIS_COR_FALLBACK.length];
-      const envios = enviosPorTipo[tipo] || 0;
-      const vendas = vendasPorTipo[tipo] || 0;
+    // Monta os 4 buckets fixos na ordem definida
+    const canais = BUCKETS.map(b => {
+      const envios = enviosPorBucket[b] || 0;
+      const vendas = vendasPorBucket[b] || 0;
       return {
-        tipo,
-        label: canalLabel(tipo),
-        cor,
+        bucket: b,
+        label: canalLabel(b),
+        cor: CANAIS_COR[b],
         envios,
         vendas,
         conversao: envios > 0 ? (vendas / envios) * 100 : 0,
       };
-    }).sort((a, b) => b.envios - a.envios || b.vendas - a.vendas);
+    });
 
-    return { canais, campoVendas };
+    return {
+      canais,
+      metodo: escolhido.metodo,
+      totalEnvios: canais.reduce((s, c) => s + c.envios, 0),
+      totalVendas: canais.reduce((s, c) => s + c.vendas, 0),
+      maxEnvios: canais.reduce((m, c) => Math.max(m, c.envios), 0),
+    };
   }, [enviosData, vendasData, from, to]);
 
-  const totalEnvios = canais.reduce((s, c) => s + c.envios, 0);
-  const totalVendas = canais.reduce((s, c) => s + c.vendas, 0);
-  const maxEnvios = canais.reduce((m, c) => Math.max(m, c.envios), 0);
-
-  if (!canais.length) return null;
+  if (!totalEnvios && !totalVendas) return null;
 
   return (
     <div className="funnel-section">
@@ -85,17 +115,17 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
       <div className="funnel-sub">
         Topo: entraram (envios) · Fundo: vendas ·{' '}
         {totalEnvios.toLocaleString('pt-BR')} envios → {totalVendas.toLocaleString('pt-BR')} vendas
-        {' '}· vendas por <code>{campoVendas === 'utmTerm' ? 'utm_term' : 'utm_medium'}</code>
+        {' '}· vendas atribuídas por <code>{metodo}</code>
       </div>
 
-      <div className="funnel-grid">
+      <div className="funnel-grid funnel-grid-4">
         {canais.map(c => {
-          // Largura do topo proporcional ao maior canal; fundo proporcional à conversão
+          // Topo proporcional ao maior canal; fundo proporcional à conversão
           const topoW = maxEnvios > 0 ? Math.max((c.envios / maxEnvios) * 100, c.envios > 0 ? 12 : 0) : 0;
           const fundoPctDoTopo = Math.min(Math.max(c.conversao, c.vendas > 0 ? 8 : 0), 100);
           const fundoW = c.envios > 0 ? topoW * (fundoPctDoTopo / 100) : 0;
           return (
-            <div key={c.tipo} className="funnel-card">
+            <div key={c.bucket} className="funnel-card">
               <div className="funnel-card-head">
                 <span className="funnel-card-label" style={{ color: c.cor }}>{c.label}</span>
                 <span className="funnel-conv" style={{ color: c.cor }}>{fmtPct(c.conversao)}</span>
@@ -103,10 +133,7 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
 
               {/* TOPO — entraram (envios) */}
               <div className="funnel-stage">
-                <div
-                  className="funnel-bar funnel-top"
-                  style={{ width: `${topoW}%`, background: c.cor }}
-                >
+                <div className="funnel-bar funnel-top" style={{ width: `${topoW}%`, background: c.cor }}>
                   <span className="funnel-bar-val">{c.envios.toLocaleString('pt-BR')}</span>
                 </div>
                 <span className="funnel-stage-tag">Entraram</span>
@@ -114,10 +141,7 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
 
               {/* FUNDO — vendas */}
               <div className="funnel-stage">
-                <div
-                  className="funnel-bar funnel-bottom"
-                  style={{ width: `${fundoW}%`, background: c.cor }}
-                >
+                <div className="funnel-bar funnel-bottom" style={{ width: `${fundoW}%`, background: c.cor }}>
                   <span className="funnel-bar-val">{c.vendas.toLocaleString('pt-BR')}</span>
                 </div>
                 <span className="funnel-stage-tag">Vendas</span>
