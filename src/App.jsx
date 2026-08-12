@@ -12,6 +12,7 @@ import UtmDashboard from './components/UtmDashboard';
 import RefundsDashboard from './components/RefundsDashboard';
 import GeralDashboard from './components/GeralDashboard';
 import MetaProgress from './components/MetaProgress';
+import FunnelSegmentacao from './components/FunnelSegmentacao';
 import StructureMenu from './components/StructureMenu';
 import ChartTooltip from './components/ChartTooltip';
 import { ProductFilter, PeriodFilter } from './components/FilterBar';
@@ -42,7 +43,7 @@ const formatTooltipValue = (name, value) =>
 function App() {
   const { data: allData, loading, refreshing, error, updatedAt, source, refetch } = useSalesData();
   const { data: utmAllData } = useUtmData();
-  const { countEnvios, calcGasto, tiposUnicos } = useEnviosData();
+  const { data: enviosData, countEnvios, calcGasto, tiposUnicos } = useEnviosData();
   const { rows: allReembolsos } = useRefundData();
 
   const [estrutura, setEstrutura]         = useState('recuperacao');
@@ -246,6 +247,14 @@ function App() {
 
       {/* METAS DO MÊS */}
       <MetaProgress data={allData} />
+
+      {/* FUNIL POR SEGMENTAÇÃO DE CANAL */}
+      <FunnelSegmentacao
+        enviosData={enviosData}
+        vendasData={utmAllData}
+        from={from}
+        to={to}
+      />
 
       {/* CHARTS */}
       <div className="charts-grid">

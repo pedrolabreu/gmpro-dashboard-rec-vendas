@@ -43,6 +43,44 @@ export const TIPO_CUSTO_MAP = {
   'segunda_tentativa': 0.37,
 };
 
+// Canais de recuperação (segmentação do tipo). As chaves usam a forma
+// normalizada (minúsculo, separadores como "_"). Rótulo e cor de cada canal;
+// canais novos que aparecerem na planilha entram automaticamente no funil com
+// um rótulo derivado do próprio nome.
+export const CANAIS_LABEL = {
+  'recuperacao':                'Recuperação',
+  'segunda_tentativa':          'Segunda Tentativa',
+  'recuperacao_popup_myads':    'Pop-up MyAds',
+  'recuperacao_popup_aurelio':  'Pop-up Aurélio',
+  'recuperacao_popup_smd':      'Pop-up SMD',
+};
+
+export const CANAIS_COR = {
+  'recuperacao':                '#cc0000',
+  'segunda_tentativa':          '#f59e0b',
+  'recuperacao_popup_myads':    '#3b82f6',
+  'recuperacao_popup_aurelio':  '#a855f7',
+  'recuperacao_popup_smd':      '#4ade80',
+};
+
+// Paleta de fallback para canais não mapeados acima
+export const CANAIS_COR_FALLBACK = ['#22d3ee', '#eab308', '#ec4899', '#14b8a6', '#f97316'];
+
+// Normaliza um tipo/canal: minúsculo, sem acento de espaços, separadores -> "_"
+export function normalizeCanal(s) {
+  return (s ?? '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+}
+
+// Rótulo amigável de um canal normalizado (usa o mapa ou deriva do nome)
+export function canalLabel(tipo) {
+  if (CANAIS_LABEL[tipo]) return CANAIS_LABEL[tipo];
+  if (!tipo) return '(sem tipo)';
+  return tipo
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 // Metas de faturamento do mês (Recuperação de Vendas)
 // Ordem crescente: Mínima → Regular → Super
 export const MESES_PT = [
