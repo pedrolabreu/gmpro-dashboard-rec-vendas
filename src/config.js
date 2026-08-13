@@ -50,20 +50,26 @@ export const BUCKETS = [
   'segunda_tentativa',
   'recuperacao_popup_aurelio',
   'recuperacao_popup_myads',
+  'recuperacao_popup_smd',
+  'recuperacao_popup_organico',
 ];
 
 export const CANAIS_LABEL = {
-  'recuperacao':               'Recuperação',
-  'segunda_tentativa':         'Segunda Tentativa',
-  'recuperacao_popup_aurelio': 'Pop-up Aurélio',
-  'recuperacao_popup_myads':   'Pop-up MyAds',
+  'recuperacao':                'Recuperação',
+  'segunda_tentativa':          'Segunda Tentativa',
+  'recuperacao_popup_aurelio':  'Pop-up Aurélio',
+  'recuperacao_popup_myads':    'Pop-up MyAds',
+  'recuperacao_popup_smd':      'Pop-up SMD',
+  'recuperacao_popup_organico': 'Pop-up Orgânico',
 };
 
 export const CANAIS_COR = {
-  'recuperacao':               '#cc0000',
-  'segunda_tentativa':         '#f59e0b',
-  'recuperacao_popup_aurelio': '#a855f7',
-  'recuperacao_popup_myads':   '#3b82f6',
+  'recuperacao':                '#cc0000',
+  'segunda_tentativa':          '#f59e0b',
+  'recuperacao_popup_aurelio':  '#a855f7',
+  'recuperacao_popup_myads':    '#3b82f6',
+  'recuperacao_popup_smd':      '#4ade80',
+  'recuperacao_popup_organico': '#22d3ee',
 };
 
 // Normaliza um tipo/canal: minúsculo, separadores (- e espaço) -> "_"
@@ -78,6 +84,8 @@ export function bucketCanal(tipo) {
   if (!t) return null;
   if (t.includes('aurelio')) return 'recuperacao_popup_aurelio';
   if (t.includes('myads')) return 'recuperacao_popup_myads';
+  if (t.includes('smd')) return 'recuperacao_popup_smd';
+  if (t.includes('organico')) return 'recuperacao_popup_organico';
   if (t.includes('segunda') || t.includes('tentativa')) return 'segunda_tentativa';
   return 'recuperacao'; // catch-all
 }

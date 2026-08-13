@@ -118,7 +118,7 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
         {' '}· vendas atribuídas por <code>{metodo}</code>
       </div>
 
-      <div className="funnel-grid funnel-grid-4">
+      <div className="funnel-grid">
         {canais.map(c => {
           // Topo proporcional ao maior canal; fundo proporcional à conversão
           const topoW = maxEnvios > 0 ? Math.max((c.envios / maxEnvios) * 100, c.envios > 0 ? 12 : 0) : 0;

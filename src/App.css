@@ -659,19 +659,14 @@ tbody td.envios-alto {
   gap: 14px;
 }
 
-.funnel-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
-}
-
 @media (max-width: 1100px) {
-  .funnel-grid-4 {
+  .funnel-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 640px) {
-  .funnel-grid,
-  .funnel-grid-4 {
+  .funnel-grid {
     grid-template-columns: 1fr;
   }
 }
