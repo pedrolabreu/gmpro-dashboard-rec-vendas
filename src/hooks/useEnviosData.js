@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { ENVIOS_CSV_URL, TIPO_CUSTO_MAP } from '../config';
+import { ENVIOS_CSV_URL, custoEnvio, familiaEnvio } from '../config';
 import { splitCSVLine } from '../utils/csv';
 import { parseDate } from '../utils/date';
 import { useSheetData } from './useSheetData';
@@ -29,11 +29,12 @@ function parseCSV(text) {
 export function useEnviosData() {
   const { data, loading, error } = useSheetData(ENVIOS_CSV_URL, parseCSV);
 
-  // Conta envios filtrados por tipo e intervalo de datas
+  // Conta envios filtrados por família (recuperacao/segunda_tentativa) e datas.
+  // O filtro é por FAMÍLIA: pedir "recuperacao" inclui todos os pop-ups.
   const countEnvios = useCallback((tipo, from, to) => {
-    const tipoNorm = normalizeTipo(tipo);
+    const famReq = tipo ? familiaEnvio(tipo) : null;
     return data.filter(r => {
-      if (tipoNorm && r.tipo !== tipoNorm) return false;
+      if (famReq && familiaEnvio(r.tipo) !== famReq) return false;
       const d = parseDate(r.data);
       if (!d) return false;
       if (from && d < from) return false;
@@ -42,18 +43,18 @@ export function useEnviosData() {
     }).length;
   }, [data]);
 
-  // Calcula gasto total para um intervalo, aplicando custo por tipo
-  // Se tipo fornecido: filtra só aquele tipo; senão, soma todos os tipos
+  // Calcula gasto total para um intervalo, aplicando custo por família.
+  // Considera TODOS os envios: pop-ups custam como recuperação (R$ 1,11);
+  // só segunda-tentativa custa R$ 0,37. Se tipo fornecido, filtra por família.
   const calcGasto = useCallback((tipo, from, to) => {
-    const tipoNorm = normalizeTipo(tipo);
+    const famReq = tipo ? familiaEnvio(tipo) : null;
     return data.reduce((sum, r) => {
-      if (tipoNorm && r.tipo !== tipoNorm) return sum;
+      if (famReq && familiaEnvio(r.tipo) !== famReq) return sum;
       const d = parseDate(r.data);
       if (!d) return sum;
       if (from && d < from) return sum;
       if (to   && d > to)   return sum;
-      const custo = TIPO_CUSTO_MAP[r.tipo] ?? 0;
-      return sum + custo;
+      return sum + custoEnvio(r.tipo);
     }, 0);
   }, [data]);
 

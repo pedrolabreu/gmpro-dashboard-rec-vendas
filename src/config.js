@@ -37,11 +37,34 @@ export function resolveTipoEnvio(produto) {
   return null;
 }
 
-// Custo por envio conforme o tipo
+// Custo por envio conforme a família:
+//  - segunda-tentativa        → R$ 0,37
+//  - recuperação (todos os demais, incluindo pop-ups) → R$ 1,11
+export const CUSTO_SEGUNDA_TENTATIVA = 0.37;
+export const CUSTO_RECUPERACAO       = 1.11;
+
+// Mantido por compatibilidade (uso pontual/legado)
 export const TIPO_CUSTO_MAP = {
-  'recuperacao':       1.11,
-  'segunda_tentativa': 0.37,
+  'recuperacao':       CUSTO_RECUPERACAO,
+  'segunda_tentativa': CUSTO_SEGUNDA_TENTATIVA,
 };
+
+// Família do envio: 'segunda_tentativa' ou 'recuperacao' (catch-all).
+// Retorna null se o tipo vier vazio.
+export function familiaEnvio(tipo) {
+  const t = normalizeCanal(tipo);
+  if (!t) return null;
+  if (t.includes('segunda') || t.includes('tentativa')) return 'segunda_tentativa';
+  return 'recuperacao';
+}
+
+// Custo de um envio conforme sua família. Considera TODOS os envios
+// (pop-ups entram como recuperação); só segunda-tentativa custa R$ 0,37.
+export function custoEnvio(tipo) {
+  const fam = familiaEnvio(tipo);
+  if (!fam) return 0;
+  return fam === 'segunda_tentativa' ? CUSTO_SEGUNDA_TENTATIVA : CUSTO_RECUPERACAO;
+}
 
 // Funil consolidado em 4 canais fixos. "Recuperação" é o catch-all: tudo que
 // não for Segunda Tentativa, Pop-up Aurélio ou Pop-up MyAds.
