@@ -144,6 +144,11 @@ export const METAS_POR_MES = {
     { key: 'regular', label: 'Regular', valor: 68000.00, cor: '#3b82f6' },
     { key: 'super',   label: 'Super',   valor: 89250.00, cor: '#4ade80' },
   ],
+  '2026-09': [
+    { key: 'minima',  label: 'Mínima',  valor: 54000.00, cor: '#f59e0b' },
+    { key: 'regular', label: 'Regular', valor: 63000.00, cor: '#3b82f6' },
+    { key: 'super',   label: 'Super',   valor: 78000.00, cor: '#4ade80' },
+  ],
 };
 
 const mesKey = (ano, mes) => `${ano}-${String(mes + 1).padStart(2, '0')}`;
