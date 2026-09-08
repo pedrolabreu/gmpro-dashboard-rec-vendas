@@ -76,6 +76,8 @@ export const BUCKETS = [
   'recuperacao_popup_myads_fvsl',
   'recuperacao_popup_smd',
   'recuperacao_popup_organico',
+  'recuperacao_quiz_myads',
+  'recuperacao_quiz_aurelio',
 ];
 
 export const CANAIS_LABEL = {
@@ -86,6 +88,8 @@ export const CANAIS_LABEL = {
   'recuperacao_popup_myads_fvsl': 'Pop-up MyAds FVSL',
   'recuperacao_popup_smd':        'Pop-up SMD',
   'recuperacao_popup_organico':   'Pop-up Orgânico',
+  'recuperacao_quiz_myads':       'Quiz MyAds',
+  'recuperacao_quiz_aurelio':     'Quiz Aurélio',
 };
 
 export const CANAIS_COR = {
@@ -96,6 +100,8 @@ export const CANAIS_COR = {
   'recuperacao_popup_myads_fvsl': '#ec4899',
   'recuperacao_popup_smd':        '#4ade80',
   'recuperacao_popup_organico':   '#22d3ee',
+  'recuperacao_quiz_myads':       '#818cf8',
+  'recuperacao_quiz_aurelio':     '#facc15',
 };
 
 // Normaliza um tipo/canal: minúsculo, separadores (- e espaço) -> "_"
@@ -108,6 +114,9 @@ export function normalizeCanal(s) {
 export function bucketCanal(tipo) {
   const t = normalizeCanal(tipo);
   if (!t) return null;
+  // Quiz precisa vir antes dos pop-ups (os nomes contêm "myads"/"aurelio")
+  if (t.includes('quiz') && t.includes('myads')) return 'recuperacao_quiz_myads';
+  if (t.includes('quiz') && t.includes('aurelio')) return 'recuperacao_quiz_aurelio';
   if (t.includes('aurelio')) return 'recuperacao_popup_aurelio';
   // FVSL precisa vir antes do MyAds normal (o nome contém "myads")
   if (t.includes('myads') && t.includes('fvsl')) return 'recuperacao_popup_myads_fvsl';
