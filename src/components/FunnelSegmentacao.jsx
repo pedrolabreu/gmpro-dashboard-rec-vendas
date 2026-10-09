@@ -3,7 +3,7 @@ import { Filter } from 'lucide-react';
 import { parseDate } from '../utils/date';
 import { fmtPct } from '../utils/format';
 import {
-  BUCKETS, CANAIS_COR, bucketCanal, canalLabel, normalizeCanal,
+  BUCKETS, CANAIS_COR, bucketFunil, canalLabel, normalizeCanal,
 } from '../config';
 
 // Funil por segmentação de canal (4 buckets fixos):
@@ -36,7 +36,7 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
       if (t) tiposEnvio.add(t);
 
       if (inRange(r.data)) {
-        const b = bucketCanal(r.tipo);
+        const b = bucketFunil(r.tipo);
         if (b) enviosPorBucket[b] = (enviosPorBucket[b] || 0) + 1;
       }
 
@@ -76,7 +76,7 @@ export default function FunnelSegmentacao({ enviosData, vendasData, from, to }) 
     vendasPeriodo.forEach(r => {
       const tipo = escolhido.resolver(r);
       if (!tipo) return;
-      const b = bucketCanal(tipo);
+      const b = bucketFunil(tipo);
       if (b) vendasPorBucket[b] = (vendasPorBucket[b] || 0) + 1;
     });
 

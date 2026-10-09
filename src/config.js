@@ -68,14 +68,21 @@ export function custoEnvio(tipo) {
 
 // Funil consolidado em 4 canais fixos. "Recuperação" é o catch-all: tudo que
 // não for Segunda Tentativa, Pop-up Aurélio ou Pop-up MyAds.
+// Funil consolidado. "Recuperação" é o catch-all: tudo que não for um dos
+// canais visíveis abaixo.
 export const BUCKETS = [
   'recuperacao',
   'segunda_tentativa',
-  'recuperacao_popup_aurelio',
   'recuperacao_popup_myads',
-  'recuperacao_popup_myads_fvsl',
   'recuperacao_popup_smd',
   'recuperacao_popup_organico',
+];
+
+// Buckets que a bucketCanal ainda identifica (para não misturar com os
+// semelhantes), mas que NÃO viram card: seu volume é dobrado em "Recuperação".
+export const BUCKETS_OCULTOS = [
+  'recuperacao_popup_aurelio',
+  'recuperacao_popup_myads_fvsl',
   'recuperacao_quiz_myads',
   'recuperacao_quiz_aurelio',
 ];
@@ -130,6 +137,14 @@ export function bucketCanal(tipo) {
 // Rótulo amigável de um bucket
 export function canalLabel(bucket) {
   return CANAIS_LABEL[bucket] || bucket;
+}
+
+// Bucket para EXIBIÇÃO no funil: usa a classificação precisa da bucketCanal,
+// mas dobra os canais ocultos em "Recuperação" (catch-all).
+export function bucketFunil(tipo) {
+  const b = bucketCanal(tipo);
+  if (!b) return null;
+  return BUCKETS_OCULTOS.includes(b) ? 'recuperacao' : b;
 }
 
 // Metas de faturamento do mês (Recuperação de Vendas)
